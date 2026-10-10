@@ -184,6 +184,7 @@ OBJECTS := \
 	smc.o \
 	smp.o \
 	spmi.o \
+	stage1_cfg.o \
 	start.o \
 	startup.o \
 	string.o \
