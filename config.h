@@ -33,4 +33,9 @@
 # endif
 #endif
 
+// The J613 stage 1 runs its own, configurable USB proxy window
+#ifdef J613_STAGE1
+# undef EARLY_PROXY_TIMEOUT
+#endif
+
 #endif

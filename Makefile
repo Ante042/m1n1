@@ -86,6 +86,22 @@ CFG += CHAINLOADING
 CARGO_FLAGS += --features chainload
 endif
 
+# Stage 1 for MacBook Air 13" M3 (J613) on macOS 26.6.2 OS firmware: loads
+# one stage 2 file from the internal EFI system partition (see src/stage1.c)
+ifeq ($(J613_STAGE1),1)
+ifneq ($(CHAINLOADING),1)
+$(error J613_STAGE1=1 needs CHAINLOADING=1)
+endif
+CFG += J613_STAGE1
+ifeq ($(strip $(M1N1_VERSION_TAG)),)
+M1N1_VERSION_TAG := v1.6.1-m3next.stage1
+endif
+export M1N1_VERSION_TAG
+ifneq ($(shell printf '%s\n' '$(M1N1_VERSION_TAG)' | LC_ALL=C grep -Ex '[A-Za-z0-9._+-]+'),$(M1N1_VERSION_TAG))
+$(error M1N1_VERSION_TAG must match [A-Za-z0-9._+-]+)
+endif
+endif
+
 LDFLAGS := -EL -maarch64elf --no-undefined -X -Bsymbolic \
 	-z notext --no-apply-dynamic-relocs --orphan-handling=warn \
 	-z nocopyreloc --gc-sections -pie
