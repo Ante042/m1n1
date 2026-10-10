@@ -16,6 +16,7 @@
 #include "adt.h"
 #include "fb.h"
 #include "firmware.h"
+#include "iodev.h"
 #include "payload.h"
 #include "soc.h"
 #include "stage1.h"
@@ -103,6 +104,38 @@ static void stage1_usb_init(void)
     usb_up = true;
 }
 
+/*
+ * Developer window: offer the USB proxy for window_ms before loading stage 2.
+ * Uses the same connection test as the EARLY_PROXY_TIMEOUT loop in main.c, but
+ * does not depend on there being a framebuffer. Returns true if a host
+ * connected.
+ */
+static bool stage1_usb_window(u32 window_ms)
+{
+    printf("stage1: USB window open for %u ms\n", window_ms);
+
+    stage1_usb_init();
+
+    u64 deadline = timeout_calculate(window_ms * 1000);
+    do {
+        for (int i = 0; i < USB_IODEV_COUNT; i++) {
+            iodev_id_t iodev = IODEV_USB0 + i;
+
+            if (!(iodev_get_usage(iodev) & USAGE_UARTPROXY))
+                continue;
+
+            usb_iodev_vuart_setup(iodev);
+            iodev_handle_events(iodev);
+            if (iodev_can_write(iodev) || iodev_can_write(IODEV_USB_VUART))
+                return true;
+        }
+
+        mdelay(10);
+    } while (!timeout_expired(deadline));
+
+    return false;
+}
+
 static void stage1_fail(void)
 {
     fb_set_active(true);
@@ -138,7 +171,16 @@ void stage1_run_actions(void)
     if (stage1_config() != STAGE1_CFG_VALID)
         goto fail;
 
-    printf("stage1: no USB window, loading %s from the ESP\n", cfg_info.path);
+    if (!cfg_info.window_ms) {
+        // The default: USB is not touched at all on the way to stage 2
+        printf("stage1: no USB window, loading %s from the ESP\n", cfg_info.path);
+    } else if (stage1_usb_window(cfg_info.window_ms)) {
+        printf("stage1: USB host connected in the window, running the proxy instead of stage 2\n");
+        uartproxy_run(NULL);
+        return;
+    } else {
+        printf("stage1: USB window expired, loading %s from the ESP\n", cfg_info.path);
+    }
 
     if (payload_chainload(cfg_info.spec) == 0) {
         printf("stage1: stage 2 loaded\n");
