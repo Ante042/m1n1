@@ -38,6 +38,12 @@
 #define STAGE1_TARGET_TYPE "J613"
 #define STAGE1_MODEL       "MacBook Air 13\" M3 (J613)"
 #define STAGE1_IDENT       "##j613_stage1##"
+#elif defined(ESP_STAGE1_J615)
+// Experimental: J615 has the same SoC and 26.6.2 OS firmware as J613, but this
+// build has not yet been tested on a J615
+#define STAGE1_TARGET_TYPE "J615"
+#define STAGE1_MODEL       "MacBook Air 15-inch M3 (J615)"
+#define STAGE1_IDENT       "##j615_stage1##"
 #else
 #error "No stage 1 board selected"
 #endif

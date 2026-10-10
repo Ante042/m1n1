@@ -89,9 +89,17 @@ endif
 # Stage 1 for macOS 26.6.2 OS firmware that loads one stage 2 file from the
 # internal EFI system partition (see src/stage1.c). It is built for one board:
 # - J613_STAGE1=1: MacBook Air 13" M3 (J613)
+# - J615_STAGE1=1: MacBook Air 15-inch M3 (J615). Experimental: not yet tested
+#   on hardware.
 STAGE1_BOARD :=
 ifeq ($(J613_STAGE1),1)
 STAGE1_BOARD := J613
+endif
+ifeq ($(J615_STAGE1),1)
+ifneq ($(STAGE1_BOARD),)
+$(error J613_STAGE1=1 and J615_STAGE1=1 cannot be combined)
+endif
+STAGE1_BOARD := J615
 endif
 
 ifneq ($(STAGE1_BOARD),)
@@ -117,6 +125,8 @@ endif
 # - S >= 0x114000 keeps that range clear of a 0x114000-byte stage 2 m1n1;
 # - S + 0x5f000 <= 0x3e0000 keeps it inside the zero padding that the Aurora
 #   m1n1 stage 2 no longer uses once it has started.
+# This layout was measured on J613. J615 has the same SoC and OS firmware and
+# uses the same bounds, which have not yet been checked on a J615.
 STAGE1_MIN_SIZE := 0x114000
 STAGE1_MAX_SIZE := 0x381000
 STAGE1_CHECK = $(QUIET)size=$$(wc -c < $@); \
