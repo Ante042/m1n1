@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Fill in, or check, the configuration block of a J613 m1n1 stage 1 image.
+"""Fill in, or check, the configuration block of an m1n1 ESP stage 1 image.
 
-The J613 stage 1 (m1n1 built with CHAINLOADING=1 J613_STAGE1=1) loads one
-stage 2 file from the internal EFI system partition (ESP). Which partition and
-which file is stored in a 260 byte block inside the image, described in
-src/stage1_cfg.h. A freshly built ("factory") image has an empty block and only
-offers the USB proxy.
+The ESP stage 1 (m1n1 built with CHAINLOADING=1 and J613_STAGE1=1 or
+J615_STAGE1=1) loads one stage 2 file from the internal EFI system partition
+(ESP). Which partition and which file is stored in a 260 byte block inside the
+image, described in src/stage1_cfg.h. A freshly built ("factory") image has an
+empty block and only offers the USB proxy.
+
+Each image is built for one board, which this tool reports:
+    j613  MacBook Air 13" M3 (J613)
+    j615  MacBook Air 15-inch M3 (J615), experimental and untested on hardware
 
     j613_stage1_fill.py IMAGE OUTPUT [--esp-partuuid UUID] [--target PATH]
-                        [--window-ms MS] [--esp-mount DIR]
+                        [--window-ms MS] [--esp-mount DIR] [--board BOARD]
                         [--allow-missing-target]
     j613_stage1_fill.py --check IMAGE
 
-Filling writes a new file and never modifies IMAGE. On Linux the ESP PARTUUID is
-read from the mount at --esp-mount when --esp-partuuid is not given; elsewhere
---esp-partuuid is required.
+Filling writes a new file and never modifies IMAGE. With --board, an image
+built for another board is refused. On Linux, when --esp-partuuid is not given,
+the ESP PARTUUID is read from the mount at --esp-mount and the image must be for
+the Mac the tool runs on; elsewhere --esp-partuuid is required.
 
 Only the Python standard library is used.
 """
@@ -44,7 +49,15 @@ OFF_CRC = 256
 
 END_MARKER = b"STACKBOT"
 TAG_PREFIX = b"chosen.asahi,m1n1-stage1-version="
-IDENT = b"##j613_stage1##"
+
+# Boards: the identity string the image carries, and the model it names
+BOARDS = {
+    "j613": {"ident": b"##j613_stage1##", "model": 'MacBook Air 13" M3 (J613)',
+             "experimental": False},
+    "j615": {"ident": b"##j615_stage1##", "model": "MacBook Air 15-inch M3 (J615)",
+             "experimental": True},
+}
+DT_COMPATIBLE = "/proc/device-tree/compatible"
 
 DEFAULT_MOUNT = "/boot/efi"
 DEFAULT_TARGET = "m1n1/boot.bin"
@@ -168,8 +181,42 @@ def decode_block(block):
 # Image
 
 
+def board_of(image):
+    """Return the board ("j613", "j615") a stage 1 image was built for."""
+    found = [(name, image.count(b["ident"])) for name, b in BOARDS.items()]
+    found = [(name, n) for name, n in found if n]
+    if not found:
+        idents = " or ".join(b["ident"].decode() for b in BOARDS.values())
+        raise FillError(f"no {idents} identity string; this file is some other m1n1")
+    if len(found) > 1 or found[0][1] > 1:
+        raise FillError("the stage 1 identity string is not unique; refusing an image that "
+                        "claims more than one board")
+    return found[0][0]
+
+
+def board_text(board):
+    info = BOARDS[board]
+    text = info["model"]
+    if info["experimental"]:
+        text += ", experimental: not yet tested on hardware"
+    return text
+
+
+def running_board():
+    """The stage 1 board this Linux system runs on, or None if it is not one."""
+    try:
+        with open(DT_COMPATIBLE, "rb") as f:
+            compatible = f.read().split(b"\0")
+    except OSError:
+        return None
+    for name in BOARDS:
+        if b"apple," + name.encode() in compatible:
+            return name
+    return None
+
+
 def locate(image):
-    """Find the configuration block in a J613 stage 1 image.
+    """Find the configuration block in a stage 1 image.
 
     Returns (offset, tag).
     """
@@ -177,8 +224,7 @@ def locate(image):
         raise FillError("the file does not finish with the 8-byte STACKBOT trailer; "
                         "pass the raw m1n1.bin output of the build")
 
-    if image.count(IDENT) != 1:
-        raise FillError("no unique ##j613_stage1## identity string; this file is some other m1n1")
+    board_of(image)
 
     if image.count(TAG_PREFIX) != 1:
         raise FillError("the stage1-version chosen string is absent or appears twice; "
@@ -286,7 +332,9 @@ def print_check(path, out=None):
     print(f"sha256: {hashlib.sha256(image).hexdigest()}", file=out)
     print(f"md5: {hashlib.md5(image).hexdigest()}", file=out)
     print(f"cksum: {posix_cksum(image)} {len(image)}", file=out)
+    board = board_of(image)
     print(f"tag: {tag}", file=out)
+    print(f"board: {board} ({board_text(board)})", file=out)
 
     if info["state"] == "factory":
         print("configuration: factory (not filled in; boots to the USB proxy only)", file=out)
@@ -304,7 +352,12 @@ def print_check(path, out=None):
 def fill(args):
     image = read_image(args.image)
     off, tag = locate(image)
+    board = board_of(image)
     old = decode_block(image[off:off + BLOCK_SIZE])
+
+    if args.board and args.board != board:
+        raise FillError(f"{args.image} is a stage 1 for the {BOARDS[board]['model']}, not the "
+                        f"{BOARDS[args.board]['model']}; use the {args.board.upper()} image")
 
     problem = path_problem(args.target)
     if problem:
@@ -315,6 +368,11 @@ def fill(args):
     if args.esp_partuuid:
         uuid = args.esp_partuuid
     elif sys.platform.startswith("linux"):
+        here = running_board()
+        if here and here != board:
+            raise FillError(f"this Mac is a {BOARDS[here]['model']}, but {args.image} is a "
+                            f"stage 1 for the {BOARDS[board]['model']}; use the "
+                            f"{here.upper()} image")
         mount = args.esp_mount
         uuid = esp_partuuid_from_mount(mount)
         try:
@@ -362,6 +420,7 @@ def fill(args):
         raise FillError(f"cannot write {args.output}: {e.strerror}")
 
     print(f"wrote {args.output} (stage 1 {tag})")
+    print(f"  board: {board} ({board_text(board)})")
     print(f"  esp_partuuid: {check['uuid']}")
     print(f"  target: {check['target']}")
     print(f"  window_ms: {check['window_ms']}")
@@ -376,7 +435,7 @@ class _Parser(argparse.ArgumentParser):
 
 
 def main(argv=None):
-    ap = _Parser(description="Fill in or check a J613 m1n1 stage 1 image.")
+    ap = _Parser(description="Fill in or check an m1n1 ESP stage 1 image (J613 or J615).")
     ap.add_argument("images", nargs="*", metavar="IMAGE OUTPUT",
                     help="factory (or filled) stage 1 image, and the new file to write")
     ap.add_argument("--check", metavar="IMAGE", help="print hashes and configuration of IMAGE")
@@ -388,6 +447,8 @@ def main(argv=None):
                     metavar="PATH", help=f"stage 2 file on the ESP (default {DEFAULT_TARGET})")
     ap.add_argument("--window-ms", type=int, default=0, metavar="MS",
                     help=f"USB proxy window before loading stage 2, 0..{WINDOW_MAX} (default 0)")
+    ap.add_argument("--board", type=str.lower, choices=sorted(BOARDS),
+                    help="the Mac the image is for; refuse an image built for another board")
     ap.add_argument("--allow-missing-target", action="store_true",
                     help="write the image even though TARGET is absent from the mounted ESP")
     args = ap.parse_args(argv)
