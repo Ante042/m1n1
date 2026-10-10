@@ -100,6 +100,29 @@ export M1N1_VERSION_TAG
 ifneq ($(shell printf '%s\n' '$(M1N1_VERSION_TAG)' | LC_ALL=C grep -Ex '[A-Za-z0-9._+-]+'),$(M1N1_VERSION_TAG))
 $(error M1N1_VERSION_TAG must match [A-Za-z0-9._+-]+)
 endif
+ifneq ($(LOGO),)
+$(error LOGO is not supported with J613_STAGE1=1)
+endif
+
+# Size rule for the installed raw image (S). On 26.6.2, iBoot places live
+# firmware log buffers (0x5f000 bytes) directly after the installed object, and
+# the chainloaded stage 2 is copied to the same base, so its bytes in
+# [S, S + 0x5f000) are overwritten by firmware:
+# - S >= 0x114000 keeps that range clear of a 0x114000-byte stage 2 m1n1;
+# - S + 0x5f000 <= 0x3e0000 keeps it inside the zero padding that the Aurora
+#   m1n1 stage 2 no longer uses once it has started.
+STAGE1_MIN_SIZE := 0x114000
+STAGE1_MAX_SIZE := 0x381000
+STAGE1_CHECK = $(QUIET)size=$$(wc -c < $@); \
+	if [ $$size -lt $$(($(STAGE1_MIN_SIZE))) ] || [ $$size -gt $$(($(STAGE1_MAX_SIZE))) ]; then \
+		printf 'error: %s is 0x%x bytes; a J613 stage 1 must be %s..%s bytes\n' \
+			$@ $$size $(STAGE1_MIN_SIZE) $(STAGE1_MAX_SIZE) >&2; \
+		rm -f $@; exit 1; \
+	fi; \
+	if [ "$$(tail -c 8 $@)" != STACKBOT ]; then \
+		echo "error: $@ does not end with the STACKBOT marker" >&2; rm -f $@; exit 1; \
+	fi; \
+	printf '  SIZE  %s 0x%x bytes (allowed %s..%s)\n' $@ $$size $(STAGE1_MIN_SIZE) $(STAGE1_MAX_SIZE)
 endif
 
 LDFLAGS := -EL -maarch64elf --no-undefined -X -Bsymbolic \
@@ -275,6 +298,7 @@ ifeq ($(LOGO),)
 build/$(NAME).bin: build/$(NAME)-raw.elf
 	$(QUIET)echo "  RAW   $@"
 	$(QUIET)$(OBJCOPY) -O binary --strip-debug $< $@
+	$(STAGE1_CHECK)
 
 else
 build/$(NAME)-asahi.bin: build/$(NAME)-raw.elf
