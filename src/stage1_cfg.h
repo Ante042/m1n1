@@ -4,7 +4,7 @@
 #define STAGE1_CFG_H
 
 /*
- * In-image configuration of the J613 stage 1 (see src/stage1.c).
+ * In-image configuration of the ESP stage 1 (see src/stage1.c).
  *
  * The image carries exactly one 260 byte block in initialised data. A host
  * tool fills it in for one Mac; m1n1 only reads it. Integers are little

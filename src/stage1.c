@@ -1,17 +1,20 @@
 /* SPDX-License-Identifier: MIT */
 
 /*
- * J613 stage 1: m1n1 installed as the custom boot object of a macOS 26.6.2
- * volume on a MacBook Air 13" M3 (J613). It loads one stage 2 file from the
- * internal EFI system partition and chainloads it. The partition and path are
- * kept in an in-image configuration block (stage1_cfg.h) that
- * tools/j613_stage1_fill.py fills in. If anything is missing or wrong it says
- * so on the panel and falls back to the USB proxy.
+ * ESP stage 1: m1n1 installed as the custom boot object of a macOS 26.6.2
+ * volume. It loads one stage 2 file from the internal EFI system partition
+ * and chainloads it. The partition and path are kept in an in-image
+ * configuration block (stage1_cfg.h) that tools/j613_stage1_fill.py fills in.
+ * If anything is missing or wrong it says so on the panel and falls back to
+ * the USB proxy.
+ *
+ * Each image is built for one board (see the Makefile) and refuses to run on
+ * any other.
  */
 
 #include "../build/build_cfg.h"
 
-#ifdef J613_STAGE1
+#ifdef ESP_STAGE1
 
 #include "adt.h"
 #include "fb.h"
@@ -27,13 +30,23 @@
 #include "usb.h"
 #include "utils.h"
 
+/*
+ * Per board: the ADT target-type to admit, the model named on the failure
+ * screen and the identity string's prefix.
+ */
+#if defined(ESP_STAGE1_J613)
 #define STAGE1_TARGET_TYPE "J613"
-#define STAGE1_OS_FIRMWARE V26_6_2
+#define STAGE1_MODEL       "MacBook Air 13\" M3 (J613)"
 #define STAGE1_IDENT       "##j613_stage1##"
+#else
+#error "No stage 1 board selected"
+#endif
+
+#define STAGE1_OS_FIRMWARE V26_6_2
 
 /*
- * Lets the filler tell a J613 stage 1 image from other m1n1 builds. It must
- * appear exactly once in the image.
+ * Lets the filler tell a stage 1 image from other m1n1 builds, and which board
+ * it was built for. It must appear exactly once in the image.
  */
 static const char stage1_ident[] = STAGE1_IDENT STAGE1_TARGET_TYPE " macOS 26.6.2 (25G83)";
 
@@ -141,8 +154,8 @@ static void stage1_fail(void)
     fb_set_active(true);
 
     printf("\n");
-    printf("J613 Stage 1: could not start Linux from the EFI partition.\n");
-    printf("  It needs a MacBook Air 13\" M3 (J613), macOS 26.6.2 exactly on\n");
+    printf(STAGE1_TARGET_TYPE " Stage 1: could not start Linux from the EFI partition.\n");
+    printf("  It needs a " STAGE1_MODEL ", macOS 26.6.2 exactly on\n");
     printf("  this volume, and the stage 2 file named in this stage 1:\n");
     if (stage1_config() == STAGE1_CFG_VALID)
         printf("    %s on the EFI partition with PARTUUID\n    %.36s\n", cfg_info.path,

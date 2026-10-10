@@ -86,13 +86,19 @@ CFG += CHAINLOADING
 CARGO_FLAGS += --features chainload
 endif
 
-# Stage 1 for MacBook Air 13" M3 (J613) on macOS 26.6.2 OS firmware: loads
-# one stage 2 file from the internal EFI system partition (see src/stage1.c)
+# Stage 1 for macOS 26.6.2 OS firmware that loads one stage 2 file from the
+# internal EFI system partition (see src/stage1.c). It is built for one board:
+# - J613_STAGE1=1: MacBook Air 13" M3 (J613)
+STAGE1_BOARD :=
 ifeq ($(J613_STAGE1),1)
-ifneq ($(CHAINLOADING),1)
-$(error J613_STAGE1=1 needs CHAINLOADING=1)
+STAGE1_BOARD := J613
 endif
-CFG += J613_STAGE1
+
+ifneq ($(STAGE1_BOARD),)
+ifneq ($(CHAINLOADING),1)
+$(error $(STAGE1_BOARD)_STAGE1=1 needs CHAINLOADING=1)
+endif
+CFG += ESP_STAGE1 ESP_STAGE1_$(STAGE1_BOARD)
 ifeq ($(strip $(M1N1_VERSION_TAG)),)
 M1N1_VERSION_TAG := v1.6.1-m3next.stage1
 endif
@@ -101,7 +107,7 @@ ifneq ($(shell printf '%s\n' '$(M1N1_VERSION_TAG)' | LC_ALL=C grep -Ex '[A-Za-z0
 $(error M1N1_VERSION_TAG must match [A-Za-z0-9._+-]+)
 endif
 ifneq ($(LOGO),)
-$(error LOGO is not supported with J613_STAGE1=1)
+$(error LOGO is not supported with $(STAGE1_BOARD)_STAGE1=1)
 endif
 
 # Size rule for the installed raw image (S). On 26.6.2, iBoot places live
@@ -115,7 +121,7 @@ STAGE1_MIN_SIZE := 0x114000
 STAGE1_MAX_SIZE := 0x381000
 STAGE1_CHECK = $(QUIET)size=$$(wc -c < $@); \
 	if [ $$size -lt $$(($(STAGE1_MIN_SIZE))) ] || [ $$size -gt $$(($(STAGE1_MAX_SIZE))) ]; then \
-		printf 'error: %s is 0x%x bytes; a J613 stage 1 must be %s..%s bytes\n' \
+		printf 'error: %s is 0x%x bytes; a $(STAGE1_BOARD) stage 1 must be %s..%s bytes\n' \
 			$@ $$size $(STAGE1_MIN_SIZE) $(STAGE1_MAX_SIZE) >&2; \
 		rm -f $@; exit 1; \
 	fi; \

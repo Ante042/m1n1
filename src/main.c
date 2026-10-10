@@ -72,7 +72,7 @@ void get_device_info(void)
 
 void run_actions(void)
 {
-#ifdef J613_STAGE1
+#ifdef ESP_STAGE1
     stage1_run_actions();
 #else
     bool usb_up = false;
