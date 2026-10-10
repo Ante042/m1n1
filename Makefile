@@ -108,7 +108,7 @@ $(error $(STAGE1_BOARD)_STAGE1=1 needs CHAINLOADING=1)
 endif
 CFG += ESP_STAGE1 ESP_STAGE1_$(STAGE1_BOARD)
 ifeq ($(strip $(M1N1_VERSION_TAG)),)
-M1N1_VERSION_TAG := v1.6.1-m3next.stage1
+M1N1_VERSION_TAG := v1.6.1-m3air.stage1
 endif
 export M1N1_VERSION_TAG
 ifneq ($(shell printf '%s\n' '$(M1N1_VERSION_TAG)' | LC_ALL=C grep -Ex '[A-Za-z0-9._+-]+'),$(M1N1_VERSION_TAG))

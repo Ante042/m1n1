@@ -17,7 +17,7 @@
 #
 # Build paths are remapped and SOURCE_DATE_EPOCH comes from the commit, so the
 # same commit built with the same toolchain gives identical bytes in any
-# directory. The version tag defaults to v1.6.1-m3next.stage1 (set
+# directory. The version tag defaults to v1.6.1-m3air.stage1 (set
 # M1N1_VERSION_TAG to change it); traceability goes in the manifest.
 
 set -eu
@@ -44,7 +44,7 @@ fi
 commit=$(git rev-parse HEAD)
 describe=$(git describe --tags --always --abbrev=12)
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
-M1N1_VERSION_TAG=${M1N1_VERSION_TAG:-v1.6.1-m3next.stage1}
+M1N1_VERSION_TAG=${M1N1_VERSION_TAG:-v1.6.1-m3air.stage1}
 export SOURCE_DATE_EPOCH M1N1_VERSION_TAG
 
 cargo_home=$(cd "${CARGO_HOME:-$HOME/.cargo}" && pwd -P)
