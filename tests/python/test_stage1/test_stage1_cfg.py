@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Host tests for the J613 stage 1 configuration block.
+"""Host tests for the ESP stage 1 configuration block and its filler.
 
 The C parser (src/stage1_cfg.c, with the real src/tinf/crc32.c) is built for
 the host and fed blocks made by tools/j613_stage1_fill.py, and the filler's own
@@ -7,8 +7,8 @@ decoder must agree with it on every case.
 
 Run with "python3 -m pytest tests/python/test_stage1" or
 "python3 -m unittest discover -s tests/python/test_stage1". Set CC to pick the
-host compiler. If STAGE1_IMAGE names a real factory build, the filler is also
-run against it.
+host compiler. If STAGE1_IMAGE (J613) or STAGE1_J615_IMAGE names a real factory
+build, the filler is also run against it.
 """
 
 import contextlib
@@ -76,13 +76,13 @@ def factory_block():
     return bytes(block)
 
 
-def fake_image(block=None, tag=TAG, ident=True, end=True, extra=b""):
+def fake_image(block=None, tag=TAG, ident=True, end=True, extra=b"", board="j613"):
     """A stand-in for a raw factory build: code, rodata strings, data, stack."""
     if block is None:
         block = factory_block()
     img = bytearray(b"\x1f\x20\x03\xd5" * 0x400)
     if ident:
-        img += b"##j613_stage1##J613\0"
+        img += fill.BOARDS[board]["ident"] + board.upper().encode() + b"\0"
     img += fill.TAG_PREFIX + tag.encode() + b"\0"
     img += b"##m1n1_ver##" + tag.encode() + b"\0"
     img += extra
@@ -265,6 +265,59 @@ class FillerTest(unittest.TestCase):
         off, _ = fill.locate(filled)
         self.assertEqual(c_parse(filled[off:off + 260]), f"valid 15000 {UUID};EFI/x/s2.bin")
 
+    def test_boards(self):
+        for board, model in [("j613", 'MacBook Air 13" M3 (J613)'),
+                             ("j615", "MacBook Air 15-inch M3 (J615)")]:
+            with self.subTest(board):
+                image = fake_image(board=board)
+                self.assertEqual(fill.board_of(image), board)
+                src = self.write(f"{board}.bin", image)
+                out = self.path(f"{board}-filled.bin")
+                rc, so, se = self.run_main(src, out, "--esp-partuuid", UUID)
+                self.assertEqual(rc, 0, se)
+                self.assertIn(f"board: {board} ({model}", so)
+                with open(out, "rb") as f:
+                    filled = f.read()
+                self.assertEqual(fill.board_of(filled), board)
+                off, _ = fill.locate(filled)
+                self.assertEqual(c_parse(filled[off:off + 260]), f"valid 0 {UUID};m1n1/boot.bin")
+
+                rc, so, se = self.run_main("--check", out)
+                self.assertEqual(rc, 0, se)
+                self.assertIn(f"board: {board} ({model}", so)
+                self.assertEqual("experimental" in so, board == "j615", so)
+
+    def test_board_option(self):
+        for board, other in [("j613", "j615"), ("j615", "j613")]:
+            with self.subTest(board):
+                src = self.write(f"{board}.bin", fake_image(board=board))
+                out = self.path(f"{board}-out.bin")
+                rc, so, se = self.run_main(src, out, "--esp-partuuid", UUID, "--board", other)
+                self.assertEqual(rc, 1)
+                self.assertIn(f"use the {other.upper()} image", se)
+                self.assertFalse(os.path.exists(out))
+
+                rc, so, se = self.run_main(src, out, "--esp-partuuid", UUID, "--board",
+                                           board.upper())
+                self.assertEqual(rc, 0, se)
+        rc, so, se = self.run_main(self.path("j613.bin"), self.path("x.bin"), "--esp-partuuid",
+                                   UUID, "--board", "j614")
+        self.assertEqual(rc, 1)
+        self.assertFalse(os.path.exists(self.path("x.bin")))
+
+    def test_rejects_two_boards(self):
+        for extra in (fill.BOARDS["j615"]["ident"] + b"J615\0",
+                      fill.BOARDS["j613"]["ident"] + b"J613\0"):
+            with self.subTest(extra):
+                src = self.write("both.bin", fake_image(extra=extra))
+                out = self.path("out.bin")
+                rc, so, se = self.run_main(src, out, "--esp-partuuid", UUID)
+                self.assertEqual(rc, 1)
+                self.assertIn("not unique", se)
+                self.assertFalse(os.path.exists(out))
+                rc, so, se = self.run_main("--check", src)
+                self.assertEqual(rc, 1)
+
     def test_cksum_matches_posix_tool(self):
         img = fake_image()
         for data in (b"", b"a", b"123456789", img):
@@ -391,15 +444,17 @@ class FillerTest(unittest.TestCase):
             os.chmod(p, stat.S_IRWXU)
         return bindir
 
-    def _run_linux(self, bindir, *argv):
-        saved_platform, saved_path = fill.sys.platform, os.environ["PATH"]
+    def _run_linux(self, bindir, *argv, compatible=None):
+        saved = fill.sys.platform, os.environ["PATH"], fill.DT_COMPATIBLE
         fill.sys.platform = "linux"
-        os.environ["PATH"] = bindir + os.pathsep + saved_path
+        os.environ["PATH"] = bindir + os.pathsep + saved[1]
+        fill.DT_COMPATIBLE = self.path("compatible")
+        if compatible is not None:
+            self.write("compatible", compatible)
         try:
             return self.run_main(*argv)
         finally:
-            fill.sys.platform = saved_platform
-            os.environ["PATH"] = saved_path
+            fill.sys.platform, os.environ["PATH"], fill.DT_COMPATIBLE = saved
 
     def test_linux_esp_detection(self):
         src = self.write("factory.bin", fake_image())
@@ -426,6 +481,37 @@ class FillerTest(unittest.TestCase):
         off, _ = fill.locate(filled)
         self.assertEqual(c_parse(filled[off:off + 260]), f"valid 0 {UUID};m1n1/boot.bin")
 
+    def test_linux_refuses_other_board(self):
+        esp = self.path("esp")
+        os.makedirs(os.path.join(esp, "m1n1"))
+        with open(os.path.join(esp, "m1n1", "boot.bin"), "wb") as f:
+            f.write(b"stage2")
+        bindir = self._fake_tools("vfat", UUID)
+        dt = {board: b"apple,%s\0apple,t8122\0apple,arm-platform\0" % board.encode()
+              for board in ("j613", "j615")}
+        for image, here, ok in [("j613", "j613", True), ("j615", "j615", True),
+                                ("j613", "j615", False), ("j615", "j613", False)]:
+            with self.subTest(image=image, here=here):
+                src = self.write(f"{image}.bin", fake_image(board=image))
+                out = self.path(f"{image}-on-{here}.bin")
+                rc, so, se = self._run_linux(bindir, src, out, "--esp-mount", esp,
+                                             compatible=dt[here])
+                if ok:
+                    self.assertEqual(rc, 0, se)
+                else:
+                    self.assertEqual(rc, 1)
+                    self.assertIn(f"use the {here.upper()} image", se)
+                    self.assertFalse(os.path.exists(out))
+        # Another machine, or no device tree: no board to compare with
+        src = self.write("j615.bin", fake_image(board="j615"))
+        rc, so, se = self._run_linux(bindir, src, self.path("j615-elsewhere.bin"), "--esp-mount",
+                                     esp, compatible=b"apple,j313\0apple,t8103\0")
+        self.assertEqual(rc, 0, se)
+        # With --esp-partuuid the image may be for another Mac
+        rc, so, se = self._run_linux(bindir, src, self.path("j615-uuid.bin"), "--esp-partuuid",
+                                     UUID, compatible=dt["j613"])
+        self.assertEqual(rc, 0, se)
+
     def test_linux_needs_vfat(self):
         src = self.write("factory.bin", fake_image())
         bindir = self._fake_tools("ext4", UUID)
@@ -435,14 +521,17 @@ class FillerTest(unittest.TestCase):
         self.assertIn("vfat", se)
 
 
-@unittest.skipUnless(os.environ.get("STAGE1_IMAGE"), "STAGE1_IMAGE not set")
 class BuiltImageTest(unittest.TestCase):
-    """Run the filler against a real factory build."""
+    """Run the filler against real factory builds."""
 
-    def test_built_image(self):
-        with open(os.environ["STAGE1_IMAGE"], "rb") as f:
+    def check_built_image(self, var, board, other):
+        path = os.environ.get(var)
+        if not path:
+            self.skipTest(f"{var} not set")
+        with open(path, "rb") as f:
             image = f.read()
         off, tag = fill.locate(image)
+        self.assertEqual(fill.board_of(image), board)
         self.assertEqual(off % 4, 0)
         self.assertEqual(c_parse(image[off:off + 260]), "factory")
         expect_tag = os.environ.get("STAGE1_TAG")
@@ -450,11 +539,22 @@ class BuiltImageTest(unittest.TestCase):
             self.assertEqual(tag, expect_tag)
         with tempfile.TemporaryDirectory() as d:
             out = os.path.join(d, "filled.bin")
-            rc = fill.main([os.environ["STAGE1_IMAGE"], out, "--esp-partuuid", UUID])
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(fill.main([path, out, "--esp-partuuid", UUID, "--board", other]),
+                                 1)
+            self.assertFalse(os.path.exists(out))
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = fill.main([path, out, "--esp-partuuid", UUID, "--board", board])
             self.assertEqual(rc, 0)
             with open(out, "rb") as f:
                 filled = f.read()
             self.assertEqual(c_parse(filled[off:off + 260]), f"valid 0 {UUID};m1n1/boot.bin")
+
+    def test_built_j613_image(self):
+        self.check_built_image("STAGE1_IMAGE", "j613", "j615")
+
+    def test_built_j615_image(self):
+        self.check_built_image("STAGE1_J615_IMAGE", "j615", "j613")
 
 
 if __name__ == "__main__":
