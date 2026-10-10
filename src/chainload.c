@@ -61,6 +61,11 @@ int chainload_image(void *image, size_t size, char **vars, size_t var_cnt)
     size_t stub_size = _chainload_stub_end - _chainload_stub_start;
 
     void *new_image = malloc(image_size + stub_size);
+    if (!new_image) {
+        printf("chainload: Failed to allocate 0x%lx bytes for the new image\n",
+               image_size + stub_size);
+        return -1;
+    }
 
     // Copy m1n1
     memcpy(new_image, image, size);
