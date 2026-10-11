@@ -16,6 +16,11 @@ therefore does not identify the inherited DCP executable. Its E914 nub UUID is
 checked as an ADT property; no executable `LC_UUID` comparison has been made.
 Bind the actual image or matching native client before selecting a command
 profile.
+A subsequent read-only TEXT capture preserves two equal CPU observations and
+rechecks the CPU tables, inherited DART tables and controller. Its RTKit UUID
+record matches E914 and reports `RTKit-3255.160.4.release`; the runtime TEXT
+starts with instructions, so this is not an `LC_UUID` comparison. This binds
+the observed code artifact, not firmware-side coherence or query support.
 
 Resolve registers, DMA parents, mapper streams and firmware segments through
 the current ADT. Read the active DART mode before using an inherited context
@@ -77,6 +82,13 @@ iBoot setter contract cites native 26A428 behavior. Neither establishes the
 E914/25G76 command serializer. Bind the consumer or matching native client
 before changing packet fields; do not transplant a legacy iBoot envelope into
 the observed AFKEPV2 queue.
+Inspection of the captured consumer confirms the current command/OOB layout
+and HPD op/length. Its display callback returns without a reply unless the
+display-service initialization state is set. OPEN sets a separate interface
+flag and does not directly establish that state. The live owner state remains
+unknown; validate its declared-DATA translation and CPU access before reading
+it. Do not infer its value from queue consumption or change flags and tokens
+without a matching consumer check.
 
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
