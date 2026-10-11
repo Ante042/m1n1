@@ -102,6 +102,17 @@ reads no DATA bytes and grants no permission to follow a firmware pointer.
 Bind the constructor's store instruction against current TEXT and qualify
 the exact DATA translation and read scope before observing the owner slot.
 
+A subsequent bounded read matches the constructor instructions twice and
+observes the same eight-byte owner slot three times: `0x9befa8`. CPU table,
+inherited DART/controller and cold recovery checks pass. The DATA allocation
+reservation stays intact; only its exact self-reservation is removed from the
+local read plan, with all other overlaps retained. This pointer is not followed.
+It lies outside the named firmware segment IOVA intervals, so the firmware's
+own virtual-to-DART translation must be established before reading its state
+byte at offset `0x51`. Do not add the DART base or DATA relocation bias by guess.
+Neither the live display-readiness state nor the active interface's owner
+relationship is established by this slot observation.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
