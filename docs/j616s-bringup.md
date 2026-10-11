@@ -938,6 +938,15 @@ earlier differences do not establish missing lane-1 configuration. This
 comparison matches orientation but not negotiated rate or startup history;
 it does not justify copying the native lane-control value into the proxy.
 
+A fresh RAM comparison omits the historical full-word snapshot writes to
+PIPE offset 0x44 and PHY core offset 0x6c. The same frozen image reaches stage
+15 with result 0 and no exceptions, but still falls back to 480 Mbps and stays
+in RX.Detect through one second. Lane control becomes `0x0600202a`; the other
+three sampled common-PHY words retain their earlier values. Watchdog recovery
+returns a responsive installed proxy with both watchdogs disabled. These two
+snapshot writes are unnecessary for the observed startup, and their omission
+does not resolve the physical link failure.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
