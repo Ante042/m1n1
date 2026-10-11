@@ -170,6 +170,14 @@ deadline expires. No power acknowledgment or final management post-proof is
 qualified. Retain both buffer and tables through cold recovery; do not retry
 an ambiguous ACK or treat this traffic as display-service readiness.
 
+A subsequent trial replaces repeated host transfers of BootArgs and ADT with
+exact native comparisons against retained private copies. Current code and CPU
+mapping proofs, whole-buffer readbacks, and first/middle/last changed-byte cases
+qualify both references. Ownership, CPU and watchdog checks remain in place.
+The median full guard takes 3.7 ms. Within the unchanged eight-second phase,
+nine IOReport notification ACKs complete, but no IOP or AP power ACK arrives.
+Recovery passes; management completion and display queries remain unqualified.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
