@@ -331,6 +331,18 @@ arguments. The poll accepts clear, times out on permanent BUSY and rejects an
 invalid mask. Full private-page readbacks, zero exceptions and cold watchdog
 recovery pass. This qualifies helper execution only.
 
+A checked publisher variant also passes seven private-RAM cases. It checks
+the source exception counter before the first exclusive load and after each
+exclusive load/store, stopping on an exception without another store or retry.
+The tests include successful publication, mismatch, invalid arguments and
+synthetic counter changes. Full target-page readbacks and cold recovery pass;
+these synthetic cases do not qualify actual abort recovery on firmware memory.
+
+The tested boot core (`MPIDR_EL1=0x80010100`) reports `CTR_EL0=0x9444c004`:
+both its minimum data-cache line and writeback granule are 64 bytes. The CPU
+register sample, mapping state and core identity remain stable under the same
+guard. This is one core's observed geometry, not a guarantee for all CPUs.
+
 A separate RAM-only test completes one version-2.2 range/STT command (`0xe117`)
 for the vacant 16 KiB range at DVA `0x10010000000`. START and END are written
 using the source's page encoding, `0x10010000`. START reads back exactly;
