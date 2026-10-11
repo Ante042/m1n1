@@ -744,6 +744,17 @@ The watchdog restored the installed 480 Mbit/s proxy with NOP passing, zero
 CPU exceptions and both watchdogs disabled. The remaining link-training
 prerequisite is unresolved. These experimental changes remain isolated.
 
+T6050 fixed-DP PR #248 at `440f79f9` provides a useful structural comparison:
+all 24 core-bank offsets match the J616s USB0 ADT, and its nine fixed common
+tunable writes match the source-bound T6040 mode-4 helper. Its sleep/clamp
+handshake, tunable order and failure handling corroborate existing work.
+Its reset request uses wrapper offset 0x2c; the matching T6040 USB source uses
+0x28. The DP lane/crossbar, AUX, link-rate and drive-training operations must
+not be transplanted into USB. Its init sequence also lacks the USB-specific
+CIO80 boot and tunables-readiness gate. The PR's host validation does not
+establish working T6050 display hardware or T6040 USB training. Wrapper-power
+ordering remains a source-review lead, not a qualified new register sequence.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
