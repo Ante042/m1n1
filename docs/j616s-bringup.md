@@ -395,6 +395,32 @@ state and cold recovery. No ring entry is acknowledged and no service query
 or display change follows. This qualifies queue startup and the observed
 announcement, not complete service enumeration or scanout.
 
+Management startup also uses a qualified fixed-address reader to check all
+five physical parents on the target before each controller word. Exceptions
+are checked before and after every read; outer CPU, owner and deadline checks
+remain in place. This removes repeated host round trips without caching power
+state or extending the five-second discovery limit. The IOP-first continuation
+then receives a fresh state-0x20 IOP acknowledgement and sends AP power-on.
+
+A further test prepares separate IOReport and syslog pages before startup.
+One vacant root entry and exactly two private leaf entries are published; the
+two-page selective command and complete CPU-visible table verification pass.
+DCP requests a 12 KiB syslog buffer with 63 records of 160 bytes each. The
+reply preserves the requested three 4 KiB pages while retaining a dedicated
+16 KiB backing page. Four syslog notifications are acknowledged; the fifth
+remains uncertain when the original eight-second deadline expires. No AP
+power acknowledgement or final management proof is observed. Cold recovery
+passes. Full management startup, service queries and scanout remain unqualified.
+
+Restoring the original per-field CPU/ownership guard policy removes additional
+whole-metadata comparisons introduced by the new reader. Full checks remain
+around buffer grants, destructive mailbox operations and closure verification.
+With the same deadlines, a fresh run completes seven syslog notification
+acknowledgements before reaching the existing 24-pair diagnostic cap. Recovery
+passes; AP power completion remains unobserved. The cap now includes a newly
+enabled log stream whose declared ring holds 63 records, so its accounting
+needs a separately bounded log allowance before another live attempt.
+
 ## Other devices
 
 * CDC proxy and bulk reads work at USB high speed (480 Mb/s). RAM-only
