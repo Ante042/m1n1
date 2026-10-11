@@ -696,13 +696,19 @@ A RAM-only T6040 USB candidate completed the standard CIO80 RTKit sequence:
 management version 12, the complete endpoint map, system endpoint 1, its
 preallocated crashlog request, IOP/AP power acknowledgements at state `0x20`,
 application endpoint 32 and the tunables transition from `0x881` to `0xc81`.
-Reset release and the prepared PIPE-state checks passed. The subsequent m1n1
-SuperSpeed activation disconnected high-speed CDC, but no 5 Gbit/s device
+Reset release and the prepared PIPE-state checks passed. Moving the checked
+PIPE switch before DWC3 USB3 PHY resume did not produce a 5 Gbit/s device. A
+second diagnostic recorded all 15 controller reannouncement stages before the
+link was lost: halt, reset, PIPE switch, USB3 resume, device configuration,
+scratch and event setup, endpoint setup, `RUN_STOP`, and DSTS unhalt all
+completed with return value zero and no CPU exception. No SuperSpeed device
 enumerated on either xHCI bus before watchdog recovery. The installed proxy
 returned with NOP passing and both watchdogs disabled. This rules out the
-incomplete RTKit lifecycle as the only remaining link problem; do not repeat
-the unchanged activation or transplant the M5 Pro fixed-DisplayPort tables.
-SuperSpeed CDC remains unqualified.
+incomplete RTKit lifecycle and the tested DWC3 reannouncement sequence as the
+remaining cause; investigation now belongs at the USB3 PHY link-training,
+PLL, receiver-detect and lane state. Do not repeat either unchanged activation
+or transplant the M5 Pro fixed-DisplayPort tables. SuperSpeed CDC remains
+unqualified.
 
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
