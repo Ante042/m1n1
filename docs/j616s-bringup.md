@@ -421,6 +421,17 @@ passes; AP power completion remains unobserved. The cap now includes a newly
 enabled log stream whose declared ring holds 63 records, so its accounting
 needs a separately bounded log allowance before another live attempt.
 
+A versioned diagnostic policy retains 24 non-log pairs and permits at most
+63 syslog notifications after validated geometry and a current buffer lease,
+with an absolute cap of 87. The time limits remain unchanged. Removing duplicate
+inner CPU/ownership checks, while retaining the original caller checks, lets a
+fresh run reach an additional preallocated OSLog buffer and then an unsupported
+OSLog word, `0x03010042100000a1`. The probe retains it and stops without an ACK.
+The macOS 27 handler treats this shape as deferred source information with no
+immediate ACK, but equivalence to the tested 25G76 firmware is unproven. Cold
+recovery passes; this observation does not qualify OSLog registration or AP
+power completion.
+
 ## Other devices
 
 * CDC proxy and bulk reads work at USB high speed (480 Mb/s). RAM-only
