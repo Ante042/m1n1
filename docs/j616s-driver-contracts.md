@@ -77,6 +77,12 @@ contain no matching reply. A subsequent diagnostic observes no DART fault, an
 empty outbox and an all-zero owned RX page. Query dispatch and its response
 contract remain unresolved. Do not infer unsupported HPD or a native command
 timeout from the approximately one-second queue capture.
+The experimental sequence above stops management negotiation at Hello/map;
+it does not complete the upstream system-endpoint and AP/IOP power handshake
+before starting EP23. Do not use it as a complete initialization recipe. The
+source-backed next protocol gate is mandatory system handling and both power
+states at ON before applications; its omission is not yet proved to be the
+cause of the missing HPD reply.
 The existing AFKEPV2 command implementation derives from T8152 work, and the
 iBoot setter contract cites native 26A428 behavior. Neither establishes the
 E914/25G76 command serializer. Bind the consumer or matching native client
@@ -122,6 +128,21 @@ an active TTBR/TCR sample. In this epoch the owner slot contains `0xc60fa8`.
 The firmware walker uses 4 KiB pages; do not apply the AP/DART's 16 KiB geometry
 to it. Resolve the software table-base coordinate and partial-table indexing
 before reading a descriptor or following the owner. No pointer walk is qualified.
+
+An independently observed bootstrap relocation is `0x394000` in a later epoch.
+The source maps named DATA at its linked IOVA plus that relocation, and the
+observed conversion delta matches `TEXT.remap - relocation`. Thus a pointer
+inside the relocated named DATA interval can be proposed as `DATA.physical`
+plus its segment offset after separate fresh admission. This is not a general
+heap or nonlinear root-view conversion. No readiness-byte read is qualified yet.
+
+A changed management-only trial starts EP1 once after Hello/map. It receives
+`0x00110100099ec000`, requesting 64 KiB at preallocated DVA `0x100099ec000`.
+All inherited table/controller and recovery checks pass. No buffer memory is
+read, adopted, mapped or acknowledged, and no application or AP ON command is
+sent. Preallocation is not an unconditional echo-ACK capability. This proves
+initial system traffic only; complete RTKit startup still requires handlers
+for the remaining advertised mandatory endpoints and both power acknowledgments.
 
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
