@@ -690,6 +690,29 @@ The experimental stage 2 was chainloaded into RAM. Installed boot images,
 boot policy and partitions were not changed. Preserve a working CDC recovery
 path before experimenting with further devices.
 
+## Latest SuperSpeed and higher P-state boundaries
+
+A RAM-only T6040 USB candidate completed the standard CIO80 RTKit sequence:
+management version 12, the complete endpoint map, system endpoint 1, its
+preallocated crashlog request, IOP/AP power acknowledgements at state `0x20`,
+application endpoint 32 and the tunables transition from `0x881` to `0xc81`.
+Reset release and the prepared PIPE-state checks passed. The subsequent m1n1
+SuperSpeed activation disconnected high-speed CDC, but no 5 Gbit/s device
+enumerated on either xHCI bus before watchdog recovery. The installed proxy
+returned with NOP passing and both watchdogs disabled. This rules out the
+incomplete RTKit lifecycle as the only remaining link problem; do not repeat
+the unchanged activation or transplant the M5 Pro fixed-DisplayPort tables.
+SuperSpeed CDC remains unqualified.
+
+A separate watchdog-preserving RAM candidate raised only its diagnostic
+cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
+The candidate image and build configuration matched before testing. Cluster 0
+started at state 1 but rejected the state-3 proxy request, so clusters 1 and 2
+were not touched. The watchdog restored the installed proxy with NOP passing
+and both watchdogs disabled. This is not evidence that the third ADT OPP is
+safe to expose. Production continues to permit only the live-qualified
+state-1/state-2 transitions.
+
 ## Proxy-client DART fixes
 
 Rejected mapping requests previously enabled a stream before validating its
