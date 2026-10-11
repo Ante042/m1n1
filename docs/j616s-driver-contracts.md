@@ -565,6 +565,19 @@ kernel policy value is not established under proxy; this continuation has
 not yet been tested. Recording a timeout and following that path would not
 establish firmware tunable completion.
 
+A fresh macOS 27 reference qualifies 10 Gbps on this host, cable and port in
+both plug orientations. PHY0's gadget moves from lane 1 to lane 0; removing
+the external SSD clears PHY1's host lane without changing the gadget link or
+the five sampled USB-core words. The retained native controller matches its
+`usb-drd0` provider; its clock-scale field is 13.
+
+Three individually gated native CIO reads return LFPS `0`, bandwidth `0` and
+timer `0x3c20060c`, exactly matching the failing v39 RAM activation. Restoring
+the older Asahi literals is therefore not justified as a missing native final
+state. The compiled v39 activation already skips that setup helper. Its early
+PIPE route suppresses USB3 resume; native pre-initialization resume timing is
+the next source-bound comparison. No m1n1 SuperSpeed transport is qualified.
+
 ## Native Linux USB handoff
 
 USB0 has two T8110 DART banks in the ADT. Three RAM-only Linux trials
