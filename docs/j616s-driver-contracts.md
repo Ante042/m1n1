@@ -153,6 +153,15 @@ one separately owned, zeroed, coherently published and mapped IOReport page
 before acknowledging that exact request in a fresh epoch. Preserve the mapping
 and backing until cold recovery, including on ambiguous publication.
 
+The owned-page trial publishes one 16 KiB mapping and preserves the inherited
+table bytes, but stops before its IOReport reply. A diagnostic repeat isolates
+an ASC status change from `0xec` to `0xcc`: only the bit named `IDLE` in the
+proxy client changes. CPU control remains `0x10`; the sampled DART fields are
+unchanged and its fault register is zero. Both trials recover through the
+watchdog. This is not completed management or firmware DMA qualification.
+Keep ASC execution status distinct from static translation configuration;
+the observed idle transition does not justify ignoring other status changes.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
