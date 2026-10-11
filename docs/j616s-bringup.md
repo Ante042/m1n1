@@ -827,6 +827,13 @@ commands. Native platform initialization supplies scale 13 as a fixed default.
 Neither the timing loss nor the legacy timing values are established causes
 or requirements for T6040 SuperSpeed; no production change follows from them.
 
+The native USB3 power-on path routes PIPE before controller reset.
+A guarded RAM comparison now completes that order and retains USB3 SUSPHY and
+PIPE mux 8 after reset, then stops before reset-event cleanup. Holding the source
+serial descriptor until USB disappearance avoids the last-close CDC request
+seen in failed halt runs; the retained-descriptor runs reach the halt and reset
+checks. This does not yet qualify SuperSpeed enumeration or traffic.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
