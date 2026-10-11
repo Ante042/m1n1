@@ -834,6 +834,21 @@ serial descriptor until USB disappearance avoids the last-close CDC request
 seen in failed halt runs; the retained-descriptor runs reach the halt and reset
 checks. This does not yet qualify SuperSpeed enumeration or traffic.
 
+The full RAM continuation of that reset order reaches endpoint setup and RUN
+with no CPU exception. It preserves USB3 SUSPHY and the legacy CIO values
+through the sampled startup stages. The host still sees only a 480 Mbps RAM
+epoch, followed by independently admitted watchdog recovery to the installed
+proxy. This qualifies controller startup and observed CIO retention, not a
+working SuperSpeed link. Native platform defaults request CIO settings through
+an optional property absent from the admitted J616s ADT; the older literal
+values remain experimental rather than established T6040 requirements.
+An omission comparison also reaches RUN with zero LFPS/bandwidth offset words,
+but still enumerates only at 480 Mbps. It does not establish those legacy
+defaults as the missing link fix.
+A separate Gen1 request comparison also reaches RUN and falls back to 480 Mbps.
+Restricting the request from Gen2 to Gen1 is not sufficient to establish a
+physical SuperSpeed link; the remaining PHY/link behavior needs qualification.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
