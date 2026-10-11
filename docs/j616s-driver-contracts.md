@@ -162,6 +162,14 @@ watchdog. This is not completed management or firmware DMA qualification.
 Keep ASC execution status distinct from static translation configuration;
 the observed idle transition does not justify ignoring other status changes.
 
+With only that idle bit admitted during management, the next trial completes
+the request-correlated IOReport address reply `0x0010410010000000`. Firmware
+then sends type `0xc` and type `8` notifications on EP4. The first echo ACK
+completes; the second publication is ambiguous when the original eight-second
+deadline expires. No power acknowledgment or final management post-proof is
+qualified. Retain both buffer and tables through cold recovery; do not retry
+an ambiguous ACK or treat this traffic as display-service readiness.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
