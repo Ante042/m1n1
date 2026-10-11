@@ -113,6 +113,16 @@ byte at offset `0x51`. Do not add the DART base or DATA relocation bias by guess
 Neither the live display-readiness state nor the active interface's owner
 relationship is established by this slot observation.
 
+A later read-only capture observes the fixed firmware MMU fields after matching
+their code references: configuration selector 3/address width 32, lower table
+record `{0x13f9f80, 21, 0, 8192}`, allocation pool `{0xb05000, 200, 16}` and
+table-address conversion delta `0x10008dfe000`. Three CPU observations per field
+and all table/controller/recovery checks pass. These are software records, not
+an active TTBR/TCR sample. In this epoch the owner slot contains `0xc60fa8`.
+The firmware walker uses 4 KiB pages; do not apply the AP/DART's 16 KiB geometry
+to it. Resolve the software table-base coordinate and partial-table indexing
+before reading a descriptor or following the owner. No pointer walk is qualified.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
@@ -552,3 +562,22 @@ fixes rather than duplicating them. MTP initialization, keyboard, touchpad and
 haptic click paths have their ACK/readiness contracts in the bring-up document.
 SEP communication and T6040 SuperSpeed CDC remain unqualified. No functional
 driver recipe for either follows from a nearby SoC or a successful register read.
+
+For SEP, distinguish attachment to already-booted firmware from ROM bootstrap.
+The captured native source and J700's warm-registration reference use a retained
+shared-memory descriptor on endpoint `0xfe`; discovery arrives asynchronously
+on `0xfd`. The descriptor's address and size use 4 KiB units, independently of
+the channel table's selected 16 KiB granule. The source-bound non-debug profile
+with no standalone TXMB has ordinary entries PINC, FLAG, OPLA, IPIS and SCOT;
+its backing allocation is twice the logical registered extent. This profile
+planner does not qualify the current mapper, cache publication or a live send.
+Do not substitute an AP physical address for the mapper-generated DVA or drop
+channels merely because a different firmware worked with a smaller table.
+
+Recent upstream IRC observations on macOS 26 also describe an already-running
+SEP with initial `xars`/`xarm` endpoints and unavailable ROM access. Initializing
+`xarm` is a separate persistent-state exchange, not a discovery query. Preserve
+the existing xART data and boot identity; do not initialize that exchange with
+fabricated storage or acknowledge an unimplemented write. These references
+explain why retrying the unchanged ROM request is not the next bring-up step;
+they do not establish J616s endpoint or service support.
