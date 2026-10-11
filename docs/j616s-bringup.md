@@ -373,6 +373,17 @@ deadline expires during the second ring receive; no arena headers are captured
 and no START is sent. Cold recovery passes. This is initial address-exchange
 evidence, not completed ring initialization or buffer-DMA qualification.
 
+A later test compares all seven table pages exactly on the target against
+retained, independently verified copies. This removes host readback latency
+without extending the ACK deadline. The native comparator first passes private
+equal and first/middle/last-byte mismatch cases. Firmware then returns both
+INIT_TX and INIT_RX and initializes the mapped 16 KiB arena. Two cache-refreshed
+full-page reads match. Each ring is 8 KiB, with 7,808 data bytes, a 128-byte
+block stride, and zero read/write pointers; the regions do not overlap.
+Table comparisons, controller state, zero exceptions and cold recovery pass.
+This qualifies firmware DMA initialization of this owned arena and passive
+ring headers. No START, service query, ring-pointer update or scanout follows.
+
 ## Other devices
 
 * CDC proxy and bulk reads work at USB high speed (480 Mb/s). RAM-only

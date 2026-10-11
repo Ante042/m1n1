@@ -30,6 +30,11 @@ captures verify one root-word change and one additional full-page mapping,
 preserving every inherited mapping. This establishes the tested CPU-visible
 sequence, not hardware walker visibility, AFK buffer DMA or permission to
 invalidate firmware-owned slots.
+The subsequent fresh AFK exchange initializes the owned 16 KiB arena through
+firmware DMA. Both 8 KiB rings have a measured 128-byte block stride and valid
+zero pointers. Full arena readbacks and exact table-preservation checks pass;
+queues are not started and services/scanout remain unqualified. Derive ring
+stride from the returned header rather than assuming 64 bytes.
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
