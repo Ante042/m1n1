@@ -384,6 +384,17 @@ Table comparisons, controller state, zero exceptions and cold recovery pass.
 This qualifies firmware DMA initialization of this owned arena and passive
 ring headers. No START, service query, ring-pointer update or scanout follows.
 
+A subsequent bounded test sends one START and receives START_ACK. Two stable
+RX snapshots contain a valid AFKEPV2 publish for `disp0-service` on channel 3;
+its OSSerialize properties report `interface-id: 3`. RX advances to byte 128,
+while its read pointer remains zero. The RECV notification's low 48 bits are
+opaque: both existing handlers use the actual ring header, not the payload as
+a pointer. The first observer incorrectly validated that unused field and
+stopped; the corrected observer completes with unchanged mapping/controller
+state and cold recovery. No ring entry is acknowledged and no service query
+or display change follows. This qualifies queue startup and the observed
+announcement, not complete service enumeration or scanout.
+
 ## Other devices
 
 * CDC proxy and bulk reads work at USB high speed (480 Mb/s). RAM-only

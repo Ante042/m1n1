@@ -74,7 +74,7 @@ struct epic_cmd {
     u8 txcookie;
 } PACKED;
 
-/* AFKEPV2, as used by the T8152 display firmware. These headers replace
+/* AFKEPV2 display firmware headers. These replace
  * epic_hdr/epic_sub_hdr; neither the sequence nor reserved bytes are a version.
  */
 struct afkv2_hdr {

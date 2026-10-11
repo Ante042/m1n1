@@ -35,6 +35,10 @@ firmware DMA. Both 8 KiB rings have a measured 128-byte block stride and valid
 zero pointers. Full arena readbacks and exact table-preservation checks pass;
 queues are not started and services/scanout remain unqualified. Derive ring
 stride from the returned header rather than assuming 64 bytes.
+Queue startup also passes. The observed display service uses AFKEPV2 on
+channel/interface 3 and publishes the direct name `disp0-service`; do not send
+legacy EPIC headers to it. RECV is an opaque notification; use the live header
+for pointers. Service queries, consumption and scanout remain unqualified.
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
