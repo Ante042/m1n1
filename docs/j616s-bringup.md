@@ -716,6 +716,26 @@ PLL, receiver-detect and lane state. Do not repeat either unchanged activation
 or transplant the M5 Pro fixed-DisplayPort tables. SuperSpeed CDC remains
 unqualified.
 
+The same port, cable and host negotiate 10 Gbit/s when macOS exposes its native
+USB device. A read-only native snapshot supplied exact DWC3, PIPE and PHY
+steady-state references. Matching the native DWC3 power-down scale advanced
+the RAM diagnostic from `SS_DISABLED` to Polling, but selecting the Gen 2
+device-speed code did not complete training. A later candidate restored the
+three Apple CIO timer values used by the upstream DWC3 glue after reset. All
+three values retained, GCTL and GUSB3PIPECTL matched the native snapshot, and
+DSTS remained in Polling without a SuperSpeed enumeration. Those unchanged
+sequences are qualified negative results.
+
+Offline source and ADT analysis found a separate controller gap. Native
+`AppleT8132USBXDCI::applyPlatformTunables` applies the J616s default groups for
+the DWC global/debug windows, bulk fabric, PIPE handler, link registers and
+AUSBC debug block. The tested path applied only one of their 13 records. A
+RAM-only candidate now consumes those exact ADT tables in native order, checks
+every range and masked readback, and stops before routing the PIPE on any
+fault. Normal and diagnostic builds pass with actual-C fault injection across
+all 36 table access boundaries. Live SuperSpeed behavior is not yet tested, so
+this candidate remains isolated and is not a support claim.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
