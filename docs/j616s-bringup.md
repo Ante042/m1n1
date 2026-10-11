@@ -927,6 +927,17 @@ is not missing. The changing low DSTS bits are SOF-counter changes; the sampled
 link state remains RX.Detect. These observations do not establish every clock
 prerequisite or a physical link fix.
 
+Native macOS negotiates 10 Gbit/s in both plug orientations. After returning
+to the original orientation and unlocking macOS, USB0 resumes in U0 on lane 1.
+Four individually gated common-PHY reads then report CFG `0x1001d110`,
+lane control `0x0610242a`, crossbar `0x111` and UC status `0xc81`. CFG,
+crossbar and UC status exactly match the failed Gen1 RAM candidate. Lane
+control differs only at offset 0x6c bit 20, whose producer and meaning remain
+unqualified. The native lane-0 values differ in additional fields, so those
+earlier differences do not establish missing lane-1 configuration. This
+comparison matches orientation but not negotiated rate or startup history;
+it does not justify copying the native lane-control value into the proxy.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
