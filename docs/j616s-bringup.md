@@ -329,9 +329,19 @@ translation registers and core identity remain stable around each operation.
 Publication succeeds from zero, refuses a nonzero word and rejects invalid
 arguments. The poll accepts clear, times out on permanent BUSY and rejects an
 invalid mask. Full private-page readbacks, zero exceptions and cold watchdog
-recovery pass. This qualifies helper execution only. Firmware-root cacheline
-ownership, DART version-2.2 command completion, AFK address acknowledgement and
-scanout remain unqualified.
+recovery pass. This qualifies helper execution only.
+
+A separate RAM-only test completes one version-2.2 range/STT command (`0xe117`)
+for the vacant 16 KiB range at DVA `0x10010000000`. START and END are written
+using the source's page encoding, `0x10010000`. START reads back exactly;
+END reads back `0x10010003`, preserving the page field. The test requires that
+specific END value; the low-bit semantics remain undocumented. The command's
+BUSY bit clears within the bounded 2 ms poll, exceptions and DART errors remain
+zero, and the complete inherited table closure and context remain unchanged.
+Cold watchdog recovery passes. No table entry or AFK address is published.
+This qualifies command completion for the tested empty range, not visibility
+of a new mapping. Firmware-root cacheline ownership and coherence, AFK address
+acknowledgement and scanout remain unqualified.
 
 ## Other devices
 
