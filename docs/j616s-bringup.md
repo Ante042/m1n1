@@ -947,6 +947,14 @@ returns a responsive installed proxy with both watchdogs disabled. These two
 snapshot writes are unnecessary for the observed startup, and their omission
 does not resolve the physical link failure.
 
+With the snapshot writes still omitted, a further frozen RAM control changes
+only the early-route configured capability from Gen1 to Gen2. DCFG reads back
+`0x200805`, and startup again reaches stage 15 with result 0 and no exceptions.
+The host still sees 480 Mbps; RX.Detect and the sampled common-PHY words remain
+unchanged through one second. Cold watchdog recovery passes. Neither speed
+request establishes a physical SuperSpeed link; configured capability alone
+does not explain the failure.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
