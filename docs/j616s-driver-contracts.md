@@ -24,8 +24,12 @@ with actual mapping/core admission and full-page readbacks. Their success does
 not establish ownership or coherent write permission for the firmware root
 or permission to acknowledge the AFK buffer. A separate test completes one
 version-2.2 range/STT command over a vacant 16 KiB DVA range, with zero faults
-and unchanged inherited tables and context. That does not prove visibility of
-a new mapping or permit invalidating firmware-owned slots.
+and unchanged inherited tables and context. A later experiment publishes one
+owned leaf into vacant root slot 8 and completes that selective command. Raw
+captures verify one root-word change and one additional full-page mapping,
+preserving every inherited mapping. This establishes the tested CPU-visible
+sequence, not hardware walker visibility, AFK buffer DMA or permission to
+invalidate firmware-owned slots.
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map

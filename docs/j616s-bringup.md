@@ -352,8 +352,19 @@ BUSY bit clears within the bounded 2 ms poll, exceptions and DART errors remain
 zero, and the complete inherited table closure and context remain unchanged.
 Cold watchdog recovery passes. No table entry or AFK address is published.
 This qualifies command completion for the tested empty range, not visibility
-of a new mapping. Firmware-root cacheline ownership and coherence, AFK address
-acknowledgement and scanout remain unqualified.
+of a new mapping.
+
+A later guarded experiment allocates one 16 KiB arena and one private leaf,
+then conditionally publishes that leaf into vacant root slot 8. Actual CPU
+mapping checks admit the inherited root and private pages as writable Normal
+memory. The measured boot-core cache geometry bounds the clean to the formerly
+zero 64-byte root cacheline. The selective range/STT command completes with
+zero faults. Five complete raw table captures independently verify the only
+change to the inherited tables is the expected eight-byte root entry; the
+new leaf adds exactly one full-page mapping, raising the count to 9,248.
+Cold watchdog recovery passes. This qualifies the tested CPU-visible publication
+and command sequence. No AFK address is acknowledged, so hardware walker
+visibility, buffer DMA, rings and scanout remain unqualified.
 
 ## Other devices
 
