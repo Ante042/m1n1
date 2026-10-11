@@ -144,6 +144,15 @@ sent. Preallocation is not an unconditional echo-ACK capability. This proves
 initial system traffic only; complete RTKit startup still requires handlers
 for the remaining advertised mandatory endpoints and both power acknowledgments.
 
+The first complete-startup attempt starts the advertised system set and sends
+AP ON once. It validates and retains the entire inherited 64 KiB crashlog
+descriptor, then stops on IOReport's request `0x0010400000000000`: a new 16 KiB
+buffer with no supplied address. No address ACK or application command follows.
+Watchdog recovery passes. Full management startup remains unqualified; prepare
+one separately owned, zeroed, coherently published and mapped IOReport page
+before acknowledging that exact request in a fresh epoch. Preserve the mapping
+and backing until cold recovery, including on ambiguous publication.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
