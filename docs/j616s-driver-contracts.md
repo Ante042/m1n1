@@ -19,6 +19,10 @@ use four levels and 42-bit addresses; inherited DCP stream 23 retains its
 changing an active firmware context. A complete read-only capture covers its
 root and five leaves; this does not qualify cache publication or invalidation
 for that stream. Its parameter register reports version 2.2, not version 3.
+Conditional publication and BUSY-poll helpers passed private Normal-RAM tests
+with actual mapping/core admission and full-page readbacks. Their success does
+not establish ownership or coherent write permission for the firmware root,
+DART invalidation completion, or permission to acknowledge the AFK buffer.
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map

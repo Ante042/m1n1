@@ -322,6 +322,17 @@ explicitly disabled. This establishes a stable CPU-visible table capture,
 not DART cache visibility, a publication sequence or permission to acknowledge
 the AFK buffer address. Those remain separate bring-up steps.
 
+The conditional publisher and bounded BUSY-poll helpers have now executed
+against caller-owned Normal RAM. Actual CPU page-table walks verify the
+identity and executable-alias mappings, attributes and permissions; current
+translation registers and core identity remain stable around each operation.
+Publication succeeds from zero, refuses a nonzero word and rejects invalid
+arguments. The poll accepts clear, times out on permanent BUSY and rejects an
+invalid mask. Full private-page readbacks, zero exceptions and cold watchdog
+recovery pass. This qualifies helper execution only. Firmware-root cacheline
+ownership, DART version-2.2 command completion, AFK address acknowledgement and
+scanout remain unqualified.
+
 ## Other devices
 
 * CDC proxy and bulk reads work at USB high speed (480 Mb/s). RAM-only
@@ -848,6 +859,11 @@ defaults as the missing link fix.
 A separate Gen1 request comparison also reaches RUN and falls back to 480 Mbps.
 Restricting the request from Gen2 to Gen1 is not sufficient to establish a
 physical SuperSpeed link; the remaining PHY/link behavior needs qualification.
+A source-bound configured-PCLK getter reports its predicate set before routing,
+after RUN and through the one-second link observation. This specific predicate
+is not missing. The changing low DSTS bits are SOF-counter changes; the sampled
+link state remains RX.Detect. These observations do not establish every clock
+prerequisite or a physical link fix.
 
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
