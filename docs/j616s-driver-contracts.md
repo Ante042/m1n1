@@ -55,6 +55,23 @@ table comparisons and cold recovery pass. This establishes queue consumption,
 not successful service binding; require a matching application response before
 claiming that. OOB query buffers and display commands remain unqualified.
 
+A later experiment publishes three adjacent 16 KiB mappings for the arena,
+query TX and query RX pages. One vacant root word points to the retained private
+leaf; two complete post-publication captures preserve all 9247 inherited
+mappings and verify exactly three additions. The version-2.2 range command
+completes over the resulting 48 KiB interval. These are CPU-visible table and
+command checks; the two OOB pages have no functional DMA qualification yet.
+Firmware consumes the first `GET_HPD` queue entry, but the four captured images
+contain no matching reply. A subsequent diagnostic observes no DART fault, an
+empty outbox and an all-zero owned RX page. Query dispatch and its response
+contract remain unresolved. Do not infer unsupported HPD or a native command
+timeout from the approximately one-second queue capture.
+The existing AFKEPV2 command implementation derives from T8152 work, and the
+iBoot setter contract cites native 26A428 behavior. Neither establishes the
+E914/25G76 command serializer. Bind the consumer or matching native client
+before changing packet fields; do not transplant a legacy iBoot envelope into
+the observed AFKEPV2 queue.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
