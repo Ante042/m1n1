@@ -768,6 +768,14 @@ lost register state from a change in register access. The watchdog restored the
 installed high-speed proxy. The resume and clock-programming order needs further
 source review; this experiment is not a production fix.
 
+Programming the same GCTL scale before PIPE routing also did not establish
+SuperSpeed. Guarded snapshots read LFPS offset `0x0f800f80` immediately before
+and after USB3 resume, with the expected SUSPHY transition. The sequence then
+timed out waiting for EP0 SETEPCONFIG to complete and stopped before RUN. No
+post-failure register accesses were made, and watchdog recovery passed. This
+run does not show an immediate LFPS register loss at resume; it leaves the later
+controller command and register-access prerequisites unresolved.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
