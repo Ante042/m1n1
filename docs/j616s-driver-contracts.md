@@ -10,6 +10,12 @@ The tested target is Mac16,7/J616s, chip 0x6040, board 6. The recent proxy
 captures use OS firmware 26.6.1, AOP RTKit version 12 and EPIC message/subheader
 version 2. Native macOS 27/build 26A428 captures are separate reference evidence;
 do not assume their firmware or phandles match the proxy boot.
+The latest ADT records stage-two `mBoot-18000.161.9` and stage-one/system
+`mBoot-20457.1.29`. DCP is already loaded and running. The stage-two version
+therefore does not identify the inherited DCP executable. Its E914 nub UUID is
+checked as an ADT property; no executable `LC_UUID` comparison has been made.
+Bind the actual image or matching native client before selecting a command
+profile.
 
 Resolve registers, DMA parents, mapper streams and firmware segments through
 the current ADT. Read the active DART mode before using an inherited context
