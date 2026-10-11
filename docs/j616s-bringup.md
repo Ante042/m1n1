@@ -819,6 +819,14 @@ still completes controller startup but remains in RX.Detect through one
 second, with no SuperSpeed device or bulk traffic. Watchdog recovery returns
 the installed proxy at 480 Mbps. Neither observation qualifies a PHY fix.
 
+Timed RAM observations narrow a separate controller-state change. The three
+legacy CIO timing words retain their programmed values for 10 ms after USB3
+resume, but become zero within the observed interval after the native GCTL
+scale update. DCFG remains unchanged and the observer stops before endpoint
+commands. Native platform initialization supplies scale 13 as a fixed default.
+Neither the timing loss nor the legacy timing values are established causes
+or requirements for T6040 SuperSpeed; no production change follows from them.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
