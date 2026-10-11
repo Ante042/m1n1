@@ -33,12 +33,25 @@ invalidate firmware-owned slots.
 The subsequent fresh AFK exchange initializes the owned 16 KiB arena through
 firmware DMA. Both 8 KiB rings have a measured 128-byte block stride and valid
 zero pointers. Full arena readbacks and exact table-preservation checks pass;
-queues are not started and services/scanout remain unqualified. Derive ring
-stride from the returned header rather than assuming 64 bytes.
-Queue startup also passes. The observed display service uses AFKEPV2 on
+that passive test does not start queues. Derive ring stride from the returned
+header rather than assuming 64 bytes. A subsequent queue-startup test passes.
+The observed display service uses AFKEPV2 on
 channel/interface 3 and publishes the direct name `disp0-service`; do not send
 legacy EPIC headers to it. RECV is an opaque notification; use the live header
 for pointers. Service queries, consumption and scanout remain unqualified.
+
+The source's `afkv2_open` sends a 24-byte inline packet: an eight-byte header
+with interface 3 and length 16, followed by a zero-token message with type
+`0x12`, category 0 and flags 1. The IOP queue header has channel and type zero.
+For the observed empty TX ring this occupies one 128-byte block. Publish the
+entry before TX WPTR=128, complete the producer barrier, then send
+`0xa2000000000080` on endpoint `0x23`. The source opens the service before
+acknowledging its RX announcement. Preserve firmware-owned pointer blocks;
+do not clean an entire active ring after modifying one producer field.
+This OPEN sequence has source and host-test coverage only. A later TX RPTR
+advance would establish consumption, not successful service binding; require
+a matching application response before claiming that.
+
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
 Map firmware text read-only. These are owned mappings, not permission to map
