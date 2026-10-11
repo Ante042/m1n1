@@ -755,6 +755,19 @@ CIO80 boot and tunables-readiness gate. The PR's host validation does not
 establish working T6050 display hardware or T6040 USB training. Wrapper-power
 ordering remains a source-review lead, not a qualified new register sequence.
 
+Native wrapper-power dispatch reaches the PMGR clock-gate service. A cached
+state match can skip the hardware transition; the observed active gate alone
+does not establish that match or justify cycling the wrapper domain.
+
+A separate RAM diagnostic kept USB3 SUSPHY set through PIPE routing, cleared
+it before programming the native GCTL power-down scale, and completed stage 15
+without CPU exceptions. DSTS then remained in RX.Detect at 50, 250 and 1000 ms,
+with no SuperSpeed enumeration. CIO, debug and link-register readbacks were
+zero, despite passing the earlier programming checks. This does not distinguish
+lost register state from a change in register access. The watchdog restored the
+installed high-speed proxy. The resume and clock-programming order needs further
+source review; this experiment is not a production fix.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
