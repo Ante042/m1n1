@@ -811,6 +811,14 @@ checks. Native T6040 crossbar and lane-mode writers preserve core offset 0x6c
 bit 20 instead of setting it, so its native steady-state difference is treated
 as status until a producer is source-bound; direct writes remain unqualified.
 
+A read-only ACE3 data-status query reports USB3 connection capability with
+attachment and orientation unchanged. This is port-controller status, not
+traffic proof. A further RAM candidate restores USB3 SUSPHY after endpoint
+setup and before RUN, matching the native steady-state register value. It
+still completes controller startup but remains in RX.Detect through one
+second, with no SuperSpeed device or bulk traffic. Watchdog recovery returns
+the installed proxy at 480 Mbps. Neither observation qualifies a PHY fix.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
