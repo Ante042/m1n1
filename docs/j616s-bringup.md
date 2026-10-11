@@ -776,6 +776,41 @@ post-failure register accesses were made, and watchdog recovery passed. This
 run does not show an immediate LFPS register loss at resume; it leaves the later
 controller command and register-access prerequisites unresolved.
 
+The generic DWC3 endpoint-command path clears USB2 ENBLSLPM along with SUSPHY.
+A guarded J616s experiment refused to change ENBLSLPM because it was already
+clear; later snapshots confirmed that bit clear in `GUSB2PHYCFG=0x01002400`.
+There is no qualified ENBLSLPM fix.
+
+The own native controller checks RAM0_WR_ACTIVE at USBCTL offset 0, bit 15,
+and USB31DRD_PIPE_PHY_READY at offset 0x28, bit 30, when the PIPE mux selects
+USB3. The ADT maps this bank at `0x382200000`. A read-only diagnostic observed
+RAM0 idle and PHY_READY initially clear, then asserted at nominal 50, 250 and
+1000 ms. The link remained in Polling. A later candidate waited for PHY_READY
+within the native 100 ms deadline before USB3 resume. That wait passed, but
+EP0 configuration still timed out afterward. That run did not observe readiness
+across resume and did not qualify a power, reset or command-timing fix.
+
+A guarded follow-up observed PHY_READY asserted both immediately before and
+after clearing USB3 SUSPHY, then stopped before endpoint commands. This rules
+out loss of that readiness bit as the immediate cause of the EP0 command stall.
+The relative ordering of USB3 resume and GCTL scale programming remains under
+RAM-only qualification; no ordering is production support yet.
+
+Waiting for PHY_READY, clearing USB3 SUSPHY and then programming the native
+GCTL scale completes endpoint configuration and starts the controller. Reversing
+the last two operations stalls the first EP0 command. With the command-completing
+order, DSTS remains in RX.Detect for one second and no SuperSpeed target appears.
+This narrows the remaining gap to link/electrical training after controller
+startup; it does not qualify SuperSpeed CDC or a production ordering change.
+
+Native `AppleT8132USBXDCI::controllerReset` additionally waits for its ADT
+bank-4 offset-0x20 status word to become zero after PHY_READY. A guarded
+observer found PHY_READY asserted and that word already zero both before and
+after USB3 resume. The remaining RX.Detect failure is beyond these reset-status
+checks. Native T6040 crossbar and lane-mode writers preserve core offset 0x6c
+bit 20 instead of setting it, so its native steady-state difference is treated
+as status until a producer is source-bound; direct writes remain unqualified.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
