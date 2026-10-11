@@ -89,6 +89,18 @@ flag and does not directly establish that state. The live owner state remains
 unknown; validate its declared-DATA translation and CPU access before reading
 it. Do not infer its value from queue consumption or change flags and tokens
 without a matching consumer check.
+The generic interface's callback is separate from the display owner. Its
+offset 120 corresponds to offset 208 in the containing firmware object and
+is installed by the event-source path, not OPEN.
+
+A read-only diagnostic verifies the actual CPU descriptors for the declared
+DATA owner slot at physical address `0x105ddbfb088`. This boot's region 4 ends
+at `0x105db3bc000`; the slot is outside that carveout and has an identity
+Normal-WB mapping. All captured CPU table bytes and inherited DART/controller
+state pass postchecks, followed by cold watchdog recovery. The diagnostic
+reads no DATA bytes and grants no permission to follow a firmware pointer.
+Bind the constructor's store instruction against current TEXT and qualify
+the exact DATA translation and read scope before observing the owner slot.
 
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
