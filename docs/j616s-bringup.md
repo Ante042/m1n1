@@ -726,15 +726,23 @@ three values retained, GCTL and GUSB3PIPECTL matched the native snapshot, and
 DSTS remained in Polling without a SuperSpeed enumeration. Those unchanged
 sequences are qualified negative results.
 
-Offline source and ADT analysis found a separate controller gap. Native
-`AppleT8132USBXDCI::applyPlatformTunables` applies the J616s default groups for
-the DWC global/debug windows, bulk fabric, PIPE handler, link registers and
-AUSBC debug block. The tested path applied only one of their 13 records. A
-RAM-only candidate now consumes those exact ADT tables in native order, checks
-every range and masked readback, and stops before routing the PIPE on any
-fault. Normal and diagnostic builds pass with actual-C fault injection across
-all 36 table access boundaries. Live SuperSpeed behavior is not yet tested, so
-this candidate remains isolated and is not a support claim.
+Offline source and ADT analysis bound the J616s default tables used by native
+`AppleT8132USBXDCI::applyPlatformTunables`: 13 records for the DWC global/debug
+windows, bulk fabric, PIPE handler, link registers and AUSBC debug block. A
+RAM-only experiment explicitly applied all six present groups after validating
+the complete tables, register layout and every masked readback. Host fault
+injection covers all 39 table accesses and rejects missing, malformed or
+misaddressed groups before any table writes. The experiment reached stage 15
+without CPU exceptions; the observed global/debug/link values matched a fresh
+native macOS snapshot at 10 Gbit/s, but SuperSpeed still did not enumerate.
+The explicit table application therefore does not establish a functional fix.
+
+A further diagnostic ran the ordinary USB event handler during a one-second
+observation. DSTS stayed in Polling at nominal 50, 250 and 1000 ms; the lane
+state remained `0x0600242a` and the sampled pending-event counts were zero.
+The watchdog restored the installed 480 Mbit/s proxy with NOP passing, zero
+CPU exceptions and both watchdogs disabled. The remaining link-training
+prerequisite is unresolved. These experimental changes remain isolated.
 
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
