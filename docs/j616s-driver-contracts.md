@@ -38,7 +38,7 @@ header rather than assuming 64 bytes. A subsequent queue-startup test passes.
 The observed display service uses AFKEPV2 on
 channel/interface 3 and publishes the direct name `disp0-service`; do not send
 legacy EPIC headers to it. RECV is an opaque notification; use the live header
-for pointers. Service queries, consumption and scanout remain unqualified.
+for pointers. Service queries and scanout remain unqualified.
 
 The source's `afkv2_open` sends a 24-byte inline packet: an eight-byte header
 with interface 3 and length 16, followed by a zero-token message with type
@@ -48,9 +48,12 @@ entry before TX WPTR=128, complete the producer barrier, then send
 `0xa2000000000080` on endpoint `0x23`. The source opens the service before
 acknowledging its RX announcement. Preserve firmware-owned pointer blocks;
 do not clean an entire active ring after modifying one producer field.
-This OPEN sequence has source and host-test coverage only. A later TX RPTR
-advance would establish consumption, not successful service binding; require
-a matching application response before claiming that.
+This inline OPEN sequence now passes a fresh RAM-only test. TX RPTR and WPTR
+both reach 128 and the first RX announcement is acknowledged. Full arena
+readback differs only in the entry and expected pointer words; exact inherited
+table comparisons and cold recovery pass. This establishes queue consumption,
+not successful service binding; require a matching application response before
+claiming that. OOB query buffers and display commands remain unqualified.
 
 Clean all new page tables, execute the publication barrier, invalidate the
 affected stream and verify the entire translation before enabling its DMA.
