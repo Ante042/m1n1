@@ -702,7 +702,13 @@ second diagnostic recorded all 15 controller reannouncement stages before the
 link was lost: halt, reset, PIPE switch, USB3 resume, device configuration,
 scratch and event setup, endpoint setup, `RUN_STOP`, and DSTS unhalt all
 completed with return value zero and no CPU exception. No SuperSpeed device
-enumerated on either xHCI bus before watchdog recovery. The installed proxy
+enumerated on either xHCI bus before watchdog recovery. Three read-only status
+samples over the following millisecond stayed at DSTS `0x00920004`: the
+controller was running with its SuperSpeed field selected but the link stayed
+in `SS_DISABLED`. The PIPE mux read `0x8`, its overrides were released and the
+CIO tunables indication remained `0xc81`. Releasing the acknowledged PIPE lock
+changed its readback from `1/1` to `0/0` but did not change DSTS or enumeration.
+The installed proxy
 returned with NOP passing and both watchdogs disabled. This rules out the
 incomplete RTKit lifecycle and the tested DWC3 reannouncement sequence as the
 remaining cause; investigation now belongs at the USB3 PHY link-training,
