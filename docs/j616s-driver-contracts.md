@@ -580,6 +580,14 @@ power-manager path that skips the generic direct resume branch. Trace that
 delegated path before proposing an ordering change. No m1n1 SuperSpeed
 transport is qualified.
 
+Four separately gated native common-PHY observations give CFG `0x1182e210`,
+lane mode `0x05041146`, crossbar `0x110` and UC status `0xc81`. This reference
+uses lane 0 at 10 Gbps; the failing v39 sample uses the opposite orientation
+and requests Gen1. The documented orientation masks explain the paired sleep
+overrides and crossbar selector differences. Remaining CFG/lane differences
+are not a write recipe. Lane bit 20 is clear in both, so forcing it is not
+justified by the working reference.
+
 ## Native Linux USB handoff
 
 USB0 has two T8110 DART banks in the ADT. Three RAM-only Linux trials
