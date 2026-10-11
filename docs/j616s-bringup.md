@@ -366,6 +366,13 @@ Cold watchdog recovery passes. This qualifies the tested CPU-visible publication
 and command sequence. No AFK address is acknowledged, so hardware walker
 visibility, buffer DMA, rings and scanout remain unqualified.
 
+A subsequent bounded experiment obtains a fresh GETBUF request after that
+mapping sequence and sends one address acknowledgement. Firmware returns a
+tagged INIT_TX descriptor for an 8 KiB ring at offset zero. The host observation
+deadline expires during the second ring receive; no arena headers are captured
+and no START is sent. Cold recovery passes. This is initial address-exchange
+evidence, not completed ring initialization or buffer-DMA qualification.
+
 ## Other devices
 
 * CDC proxy and bulk reads work at USB high speed (480 Mb/s). RAM-only
