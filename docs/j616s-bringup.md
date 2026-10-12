@@ -1120,6 +1120,12 @@ metadata, firmware identity and power state while preserving the original
 watchdog. The difference therefore persists after activation, but the event
 or hardware condition responsible is still unproven.
 
+A post-activation read also checks all five controller words from the native
+reference: `c164=9cc20024`, `d800=8`, `d020=4e928162`, `d024=008b8080` and
+`d060=600`, relative to controller base `0x382280000`. All five match while
+the proxy remains at 480 Mbps. This excludes a late change to these particular
+values; it does not establish equivalence of the complete controller state.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
