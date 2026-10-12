@@ -705,3 +705,18 @@ its original PA and 16 KiB extent matched. No guest was entered, and cold
 watchdog recovery passed. This qualifies the stage-2 descriptor, not guest
 stage-1 cache attributes, combined translation or native POWERUP. The
 experimental loader reservation and remap guard remain outside this PR.
+
+## EL2 mapping publication during guest execution
+
+On J616s with VHE enabled and TGE clear, EL1 TLB invalidation operates on
+guest translations. Host EL2 page-table publication must invalidate EL2
+translations explicitly. The T6040 path now uses `ALLE2IS` in this context.
+The ordinary host context and other SoCs retain their existing operation.
+
+A bounded native-context probe qualified metadata and owned tables, opened
+one temporary Device write view of the original status page, verified
+read/write translations, then removed the view and verified resealing.
+Both PAR results were `0x04000105ddc08b00`, with zero recorded exceptions.
+No status-cell or GAPF clock store was performed. Natural hardware-watchdog
+recovery returned the cold proxy. This qualifies mapping publication and
+removal; native POWERUP completion remains unqualified.
