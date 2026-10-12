@@ -1,5 +1,5 @@
 RUSTARCH ?= aarch64-unknown-none-softfloat
-BUILTIN_LOGO ?= bootlogo
+BUILTIN_LOGO ?= aurora
 
 ifneq ($(BUILTIN_LOGO),bootlogo)
 ifneq ($(words $(wildcard data/$(BUILTIN_LOGO)_128.bin data/$(BUILTIN_LOGO)_256.bin)),2)
