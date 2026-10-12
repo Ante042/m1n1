@@ -429,8 +429,13 @@ A separately enabled EP8 observer handles only already-qualified interleaved
 traffic, then captures `0x04000020d51e4021` on EP8 and stops without an ACK.
 The type, source index and offset match the producer's first type-4 chunk at
 offset 4; the remaining chunks and registration are not qualified.
-Cold recovery passes. OSLog registration, full management startup, service
-queries and scanout remain unqualified.
+A further bounded capture retains all three ordered chunks at offsets 4, 8
+and 12, without ACKs or host registration. Continuing after that observed
+sequence receives fresh IOP and AP state-0x20 acknowledgements. A later
+post-receive parent check fails, so final management closure remains unproven.
+The complete pair is retained and not replayed. Cold recovery passes. OSLog
+registration, full management startup, service queries and scanout remain
+unqualified.
 
 The paired helper checks fresh parents, translation context and exceptions
 around each word, with data before endpoint commit. Partial results are
@@ -1132,3 +1137,13 @@ exceptions and obscuring the firmware failure. Physical bypass now requires
 explicit opt-in on either side of the DVA window; other addresses use the
 configured DART and address mask. Host cases cover reads, writes and translation
 for addresses below, within and above the window with both opt-in settings.
+
+## OSLog buffer format
+
+The Python type-1 buffer decoder now uses the byte count in bits 55:36 and
+the page-number DVA in bits 35:0, matching the C RTKit implementation. The
+captured request `0x0105ff8010009a04` decodes to 24,568 bytes at DVA
+`0x10009a04000`. Allocation backing is rounded separately to 16 KiB; replies
+preserve the requested byte count. Preallocated requests need no allocation or reply;
+adopting the DVA does not establish a CPU mapping. Empty or
+duplicate requests are refused without replacing the existing buffer.
