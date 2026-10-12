@@ -652,6 +652,14 @@ planner does not qualify the current mapper, cache publication or a live send.
 Do not substitute an AP physical address for the mapper-generated DVA or drop
 channels merely because a different firmware worked with a smaller table.
 
+The channel directory uses little-endian `<IIQ>` records: native numeric tag,
+rounded channel size and 64-bit offset. The planner's `PINC` label maps to
+`0x504e4943`, yielding wire bytes `CINP`; display labels must not be encoded
+as tags. The terminator is `(0x6e756c6c, 0, 0)`. A source-only serializer now
+passes golden-byte and native-data binding tests. It produces the directory
+page only; channel payloads, allocation, mapper ownership and registration
+remain unqualified.
+
 Recent upstream IRC observations on macOS 26 also describe an already-running
 SEP with initial `xars`/`xarm` endpoints and unavailable ROM access. Initializing
 `xarm` is a separate persistent-state exchange, not a discovery query. Preserve
