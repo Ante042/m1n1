@@ -2685,6 +2685,32 @@ static int dt_t8140_refuse_display(void)
     return 0;
 }
 
+/* Only firmware version metadata, never paths, addresses or firmware data. */
+static void dt_t8140_log_external_firmware(const char *path)
+{
+    static const char *const properties[] = {
+        "apple,firmware-version", "apple,firmware-compat",
+    };
+    int node = path ? fdt_path_offset(dt, path) : -1;
+
+    printf("FDT: T8140 external preflight: firmware_node_present=%u\n", node >= 0);
+    for (size_t i = 0; i < ARRAY_SIZE(properties); i++) {
+        int len = 0;
+        const fdt32_t *values = node >= 0 ? fdt_getprop(dt, node, properties[i], &len) : NULL;
+        bool valid = values && len > 0 && len <= 5 * (int)sizeof(*values) &&
+                     len % (int)sizeof(*values) == 0;
+
+        printf("FDT: T8140 external preflight: property=%s present=%u length=%d tuple_valid=%u",
+               properties[i], !!values, len, valid);
+        if (valid) {
+            printf(" version=");
+            for (size_t j = 0; j < (size_t)len / sizeof(*values); j++)
+                printf("%s%u", j ? "." : "", fdt32_ld(&values[j]));
+        }
+        printf("\n");
+    }
+}
+
 static int dt_set_display_t8140(void)
 {
     int ret = -1;
@@ -2856,6 +2882,7 @@ static int dt_set_display_t8140(void)
     memcpy(ext_saved, dt, dt_bufsize);
     char ext_path[128];
     const char *ext = fdt_get_alias(dt, "dcpext");
+    bool ext_alias_present = !!ext;
     if (ext) {
         snprintf(ext_path, sizeof(ext_path), "%s", ext);
         ext = ext_path;
@@ -2865,7 +2892,17 @@ static int dt_set_display_t8140(void)
             ext = ext_path;
     }
     bool ext_ready = false;
-    if (ext && pmgr_power_is_on(0, "DISPEXT0_CPU") == 1) {
+    int ext_power = 0;
+    printf("FDT: T8140 external preflight: alias_present=%u node_selected=%u\n",
+           ext_alias_present, !!ext);
+    if (ext) {
+        /* Capture the existing check once; do not query an absent controller. */
+        ext_power = pmgr_power_is_on(0, "DISPEXT0_CPU");
+        printf("FDT: T8140 external preflight: power_checked=1 result=%d\n", ext_power);
+    } else {
+        printf("FDT: T8140 external preflight: power_checked=0\n");
+    }
+    if (ext && ext_power == 1) {
         step = "DCPEXT firmware properties";
         ret = dt_set_dcp_firmware(ext);
         if (!ret) {
@@ -2891,13 +2928,20 @@ static int dt_set_display_t8140(void)
             ret = dt_t8140_validate_dcp_asc("/arm-io/dcpext", "dcpext") ? 0 : -1;
         }
         ext_ready = !ret;
+        printf("FDT: T8140 external preflight: validation_attempted=1 result=%d last_step=%s\n",
+               ret, step);
         if (ret) {
             memcpy(dt, ext_saved, dt_bufsize);
             printf("FDT: T8140 %s failed (%d); leaving dcpext disabled\n", step, ret);
         }
     } else {
+        printf("FDT: T8140 external preflight: validation_attempted=0\n");
         printf("FDT: T8140 DCPEXT absent or powered off; internal panel continues\n");
     }
+    /* Observe the retained DT after any external-only rollback, not its draft. */
+    dt_t8140_log_external_firmware(ext);
+    printf("FDT: T8140 external preflight: controller_validated=%u display_qualified=0\n",
+           ext_ready);
     free(ext_saved);
 
     step = "enable DCP and disp0 consumers/IOMMUs";
