@@ -1126,6 +1126,12 @@ reference: `c164=9cc20024`, `d800=8`, `d020=4e928162`, `d024=008b8080` and
 the proxy remains at 480 Mbps. This excludes a late change to these particular
 values; it does not establish equivalence of the complete controller state.
 
+One RAM-only candidate repeats the native post-reset read/OR/write of bit 15
+at PIPE offset `0x20`. The previous sequence set that bit before reset. The
+candidate retains the existing reset and changes no other hardware operation.
+It still returns at 480 Mbps with unchanged lane-action and controller
+observations. That ordering change alone is not the link fix.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
