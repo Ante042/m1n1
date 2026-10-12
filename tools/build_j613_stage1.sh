@@ -5,8 +5,9 @@
 #
 #   tools/build_j613_stage1.sh OUTDIR [extra make arguments]
 #
-# Builds the committed tree with RELEASE=1 USE_CLANG=1 CHAINLOADING=1, once
-# with J613_STAGE1=1 and once with J615_STAGE1=1, and writes to OUTDIR:
+# Builds the committed tree with RELEASE=1 USE_CLANG=1 CHAINLOADING=1 and the
+# Omarchy boot logo (BUILTIN_LOGO=omarchy), once with J613_STAGE1=1 and once
+# with J615_STAGE1=1, and writes to OUTDIR:
 #   m1n1-j613-stage1.bin   J613 factory image (fill it with tools/j613_stage1_fill.py)
 #   m1n1-j613-stage1.elf   the matching ELF
 #   manifest.json          J613 sizes, hashes, tag, source commit, toolchain
@@ -46,6 +47,9 @@ describe=$(git describe --tags --always --abbrev=12)
 SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
 M1N1_VERSION_TAG=${M1N1_VERSION_TAG:-v1.6.1-m3air.stage1}
 export SOURCE_DATE_EPOCH M1N1_VERSION_TAG
+# The logo is linked into the image (not appended), so the image keeps the
+# size bounds and the STACKBOT tail the filler relies on.
+logo=${BUILTIN_LOGO:-omarchy}
 
 cargo_home=$(cd "${CARGO_HOME:-$HOME/.cargo}" && pwd -P)
 rustup_home=$(cd "${RUSTUP_HOME:-$HOME/.rustup}" 2>/dev/null && pwd -P || echo /nonexistent)
@@ -62,7 +66,7 @@ for board in J613 J615; do
     name=m1n1-$(echo "$board" | tr A-Z a-z)-stage1
     make clean >/dev/null
     make -j"${JOBS:-4}" ARCH="$arch" RELEASE=1 USE_CLANG=1 CHAINLOADING=1 ${board}_STAGE1=1 \
-        EXTRA_CFLAGS="-ffile-prefix-map=$src=." "$@"
+        BUILTIN_LOGO="$logo" EXTRA_CFLAGS="-ffile-prefix-map=$src=." "$@"
     cp build/m1n1.bin "$out/$name.bin"
     cp build/m1n1-raw.elf "$out/$name.elf"
 done
@@ -72,11 +76,11 @@ lld_version=$(${LLDDIR:-${TOOLCHAIN:-}}ld.lld --version 2>/dev/null | head -n1 |
 rustc_version=$(rustc -V 2>/dev/null || echo unknown)
 cargo_version=$(cargo -V 2>/dev/null || echo unknown)
 
-python3 -I - "$out" "$commit" "$describe" "$M1N1_VERSION_TAG" "$SOURCE_DATE_EPOCH" \
+python3 -I - "$out" "$commit" "$describe" "$M1N1_VERSION_TAG" "$SOURCE_DATE_EPOCH" "$logo" \
     "$clang_version" "$lld_version" "$rustc_version" "$cargo_version" <<'EOF'
 import hashlib, json, os, sys
 
-out, commit, describe, tag, epoch, clang, lld, rustc, cargo = sys.argv[1:]
+out, commit, describe, tag, epoch, logo, clang, lld, rustc, cargo = sys.argv[1:]
 
 def info(name):
     with open(os.path.join(out, name), "rb") as f:
@@ -102,7 +106,7 @@ for board, manifest_name, status in boards:
         "source_commit": commit,
         "git_describe": describe,
         "source_date_epoch": int(epoch),
-        "build": f"RELEASE=1 USE_CLANG=1 CHAINLOADING=1 {board.upper()}_STAGE1=1",
+        "build": f"RELEASE=1 USE_CLANG=1 CHAINLOADING=1 {board.upper()}_STAGE1=1 BUILTIN_LOGO={logo}",
         "size_bounds": ["0x114000", "0x381000"],
         "toolchain": {"clang": clang, "ld.lld": lld, "rustc": rustc, "cargo": cargo},
         "image": dict(file=files[0], **info(files[0])),
