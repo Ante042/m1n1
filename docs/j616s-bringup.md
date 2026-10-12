@@ -402,35 +402,30 @@ remain in place. This removes repeated host round trips without caching power
 state or extending the five-second discovery limit. The IOP-first continuation
 then receives a fresh state-0x20 IOP acknowledgement and sends AP power-on.
 
-A further test prepares separate IOReport and syslog pages before startup.
-One vacant root entry and exactly two private leaf entries are published; the
-two-page selective command and complete CPU-visible table verification pass.
-DCP requests a 12 KiB syslog buffer with 63 records of 160 bytes each. The
-reply preserves the requested three 4 KiB pages while retaining a dedicated
-16 KiB backing page. Four syslog notifications are acknowledged; the fifth
-remains uncertain when the original eight-second deadline expires. No AP
-power acknowledgement or final management proof is observed. Cold recovery
-passes. Full management startup, service queries and scanout remain unqualified.
+Owned management startup prepares separate IOReport and syslog pages before
+sending requests. One vacant root entry and exactly two private leaf entries
+are published; the two-page selective command and complete CPU-visible table
+verification pass. DCP requests a 12 KiB syslog buffer with 63 records of
+160 bytes each. The reply preserves the requested three 4 KiB pages while
+retaining a dedicated 16 KiB backing page. Notifications are acknowledged
+under a current buffer lease. No AP power acknowledgement or final management
+proof has been observed.
 
-Restoring the original per-field CPU/ownership guard policy removes additional
-whole-metadata comparisons introduced by the new reader. Full checks remain
-around buffer grants, destructive mailbox operations and closure verification.
-With the same deadlines, a fresh run completes seven syslog notification
-acknowledgements before reaching the existing 24-pair diagnostic cap. Recovery
-passes; AP power completion remains unobserved. The cap now includes a newly
-enabled log stream whose declared ring holds 63 records, so its accounting
-needs a separately bounded log allowance before another live attempt.
+The diagnostic retains 24 non-log pairs and permits at most 63 syslog
+notifications after validated geometry, with an absolute cap of 87. The
+original deadlines remain unchanged. Full checks bracket buffer grants,
+destructive mailbox operations and closure verification; controller reads
+retain their caller checks and fresh target-side parent checks.
 
-A versioned diagnostic policy retains 24 non-log pairs and permits at most
-63 syslog notifications after validated geometry and a current buffer lease,
-with an absolute cap of 87. The time limits remain unchanged. Removing duplicate
-inner CPU/ownership checks, while retaining the original caller checks, lets a
-fresh run reach an additional preallocated OSLog buffer and then an unsupported
-OSLog word, `0x03010042100000a1`. The probe retains it and stops without an ACK.
-The macOS 27 handler treats this shape as deferred source information with no
-immediate ACK, but equivalence to the tested 25G76 firmware is unproven. Cold
-recovery passes; this observation does not qualify OSLog registration or AP
-power completion.
+One run reaches a preallocated OSLog buffer and then the unsupported word
+`0x03010042100000a1`. It retains the word and stops without an ACK. Offline
+analysis of the captured 25G76 firmware finds a type-3 producer followed by
+three type-4 UUID chunks at offsets 4, 8 and 12. This binds the packet layout
+to that firmware; the producer's endpoint binding and complete transport
+semantics still require qualification. An opt-in single-follow-up observation
+times out before reaching the candidate. Cold recovery passes. OSLog
+registration, full management startup, service queries and scanout remain
+unqualified.
 
 ## Other devices
 
