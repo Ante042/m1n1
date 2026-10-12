@@ -1075,6 +1075,16 @@ the final tunables gate and activation pass without CPU exceptions. USB
 still returns at 480 Mbps in RX.Detect, and watchdog recovery passes. The
 extra collection delay is not the observed physical link fix.
 
+Bounded 32-bit reads of the active PHY firmware's identification block report
+`AppleTypeCPhyFirmware-270~1498`, `RTKit_release-3514.0.15.release` and UUID
+`a42150fc-8c1f-3bd7-a707-1ba93f9660a8`. The local macOS firmware payload
+has the same UUID, version strings and all 48 observed words. It is distinct
+from the older 25G76 firmware reference, which reports version 262.100.2.
+Use the matching version for further firmware analysis. These observations
+identify the declared firmware build; they do not establish a hash of every
+executing byte or qualify the SuperSpeed link. Watchdog recovery to the
+configured macOS default passed after each read-only probe.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
