@@ -1047,6 +1047,20 @@ tunables gate and activation pass, but USB remains at 480 Mbps in RX.Detect.
 Cold recovery passes. This does not establish lane endpoint support or prove
 that macOS enables the lane services; registration alone is insufficient.
 
+A native macOS reconnect capture records the driver closing ACIO before USB2,
+then opening USB2 before ACIO. The successful ACIO request uses lane 1,
+`multifunction` mode, orientation 1 and power level 2. Both open requests
+return zero, and independent host enumeration returns at 10 Gbit/s. Native
+open/configuration logging was enabled temporarily with mask `0x91`; the
+original mask `0x1` was restored and read back afterward. No kext replacement
+or register writes were needed for this capture.
+
+This establishes the native driver sequence for a warm cable reconnect. It
+does not trace firmware-internal activity or prove that a cold m1n1 startup
+has the same firmware lifetime. In particular, the short native ACIO open
+does not establish whether it restarts the PHY firmware. The proxy still
+requires a separately qualified physical SuperSpeed link.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
