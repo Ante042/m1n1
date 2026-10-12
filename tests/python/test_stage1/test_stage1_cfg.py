@@ -34,7 +34,7 @@ fill = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(fill)
 
 UUID = "0f3c9a2e-61b4-4c8d-9e7a-5b2d81c4f6a0"
-TAG = "v1.6.1-m3air.stage1"
+TAG = "v1.6.3-m3air.stage1"
 
 _harness = None
 _tmp = tempfile.TemporaryDirectory(prefix="stage1-test-")
