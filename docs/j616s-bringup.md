@@ -465,10 +465,11 @@ separate when converting timeouts.
   Native mode-4 PHY preparation, the complete ten-write PIPE sequence and all
   immediate masked readbacks are qualified with high-speed operation. Tests
   retain the installed image and recover through the hardware watchdog.
-  Requesting SS after PHY preparation still does not re-enumerate. The firmware
-  tunables-done indication remains clear in the tested sequence; this is not a
-  general PHY-ready flag. Physical SuperSpeed remains unqualified. See the
-  driver contracts for ownership and firmware limitations.
+  The current sequence completes RTKit startup and observes the firmware
+  tunables-done indication before reset release. SS activation re-enumerates
+  at 480 Mb/s and remains in RX.Detect. Neither the tunables indication nor
+  the separate PCLK predicate establishes a physical SuperSpeed link. See the
+  later SuperSpeed results and driver contracts for the remaining limits.
 * SIO completes RTKit startup with four-level, full 42-bit mappings of its
   ADT-described external firmware. Firmware text is mapped read-only. The
   standard system endpoints start, AP/IOP both acknowledge state 0x20,
