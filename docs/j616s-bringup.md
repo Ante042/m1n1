@@ -1085,6 +1085,25 @@ identify the declared firmware build; they do not establish a hash of every
 executing byte or qualify the SuperSpeed link. Watchdog recovery to the
 configured macOS default passed after each read-only probe.
 
+The matching firmware reports current and requested power state `0x21` after
+the proxy startup. Its startup code requests that state itself; the absence
+of an additional host power request does not establish a missing wake step.
+
+A subsequent comparison reads the firmware's lane-mode caches, selected
+lane kinds and main work-queue handler. Native macOS at 10 Gbit/s and the
+proxy preparation agree: caches `2/2`, kinds `2/1`, handler `0x115c65` and
+queue counts zero. The handler follows a common-initialization call, but
+that call has an early bypass and its caller does not check a return value.
+Neither the handler nor an empty queue proves electrical initialization.
+
+Two additional firmware words at IOP addresses `0x1000f800/804` are cleared
+by that bypass and set by the common body's final path; a separate path can
+clear the second word. Both native macOS and proxy preparation read `0/0`.
+These sequential observations describe state at sampling time, not a full
+execution history or PLL-lock result. They do not justify forcing the
+common-initialization path. Physical SuperSpeed remains unqualified in the
+proxy despite these matching firmware states.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
