@@ -1039,6 +1039,13 @@ but the link remains in RX.Detect at 480 Mbps. Watchdog recovery passes. The
 extra initial wait is not the observed link fix; native provider power-state
 handling remains a separate sequence-equivalence gap.
 
+An exploratory comparison starts advertised lane1 endpoint 34 once after
+fresh power acknowledgements and the existing endpoint-32 start. It sends no
+application payload. A bounded observation receives no traffic, and the final
+tunables gate and activation pass, but USB remains at 480 Mbps in RX.Detect.
+Cold recovery passes. This does not establish lane endpoint support or prove
+that macOS enables the lane services; registration alone is insufficient.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
