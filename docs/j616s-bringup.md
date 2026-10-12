@@ -448,6 +448,28 @@ coherence, OSLog registration, service queries and scanout remain unqualified.
 DISP_CPU was observed automatically gated in the earlier continued-drain test;
 its parent checks must remain in place for subsequent device access.
 
+A separate native macOS observation retained the actual ASCWrapV6 and its
+provider, verified the loaded register-access code, and read the inbox status
+at `0x402e08110` once. It returned `0x20001` (empty). Both FAB6_SOC and
+DISP_CPU sampled as automatic mode with actual state zero before and after
+the read; AFI, DISP_SYS and DISP_FE were active. This establishes that single
+native access under the sampled states, not continuous gating, absence of a
+transient wake, or permission to access the FIFO or DART in that state.
+
+An Aurora RAM image also returned `0x20001` from the same status register,
+with all five parents active. Its executable, ADT and absent target-side
+client owners were checked under the original watchdog. This early read
+does not establish access after the startup acknowledgements.
+
+A later Aurora RAM run completed the startup ACK boundary and CPU table
+comparison, then read that inbox status once as `0x25501`. All five parent
+domains sampled active before and after. This establishes a post-startup
+status read in that state, not access with an automatically gated parent or
+permission to consume FIFO traffic. The diagnostic used a bounded 20-second
+host startup phase, still under its original 30-second root deadline and
+45-second watchdog; individual native mailbox calls remained capped at
+eight seconds. No service query or display change was attempted.
+
 The paired helper checks fresh parents, translation context and exceptions
 around each word, with data before endpoint commit. Partial results are
 terminal; the pair is not atomic. Private refusal cases, code/data/stack CPU
@@ -1274,3 +1296,11 @@ captured request `0x0105ff8010009a04` decodes to 24,568 bytes at DVA
 preserve the requested byte count. Preallocated requests need no allocation or reply;
 adopting the DVA does not establish a CPU mapping. Empty or
 duplicate requests are refused without replacing the existing buffer.
+
+A fresh native 10 Gbit/s capture also reads the standard DWC3 controls:
+`GCTL=0x00692004`, `GUSB3PIPECTL0=0x01021102`, `DCFG=0x00480935`,
+`DCTL=0x80f00a00` and `DSTS=0x0083691d`. Native GCTL and USB3 PIPE control
+match the post-activation RAM proxy exactly. Both DCFG values request
+SuperSpeed Plus; the other configuration fields and current link state differ.
+These samples rule out a simple mismatch of the observed GCTL or PIPE-control
+values, not a transient sequencing problem. No register was changed.
