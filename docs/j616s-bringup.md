@@ -1061,6 +1061,20 @@ has the same firmware lifetime. In particular, the short native ACIO open
 does not establish whether it restarts the PHY firmware. The proxy still
 requires a separately qualified physical SuperSpeed link.
 
+A second reconnect also samples the retained RTBuddy object in software
+states Sleep (2) and Running (8). Native logs show a transient XHCI owner
+before returning to XDCI and 10 Gbit/s. These samples have gaps and do not
+prove physical power state or uninterrupted firmware execution. The native
+managed wake path can still issue RUN `0x10`; the state observations do not
+justify omitting that command.
+
+An exploratory RAM comparison completes startup after the three validated
+power messages and one nonconsuming empty-outbox check, instead of waiting
+the full 500 ms collection window. The observed collection takes 28.72 ms;
+the final tunables gate and activation pass without CPU exceptions. USB
+still returns at 480 Mbps in RX.Detect, and watchdog recovery passes. The
+extra collection delay is not the observed physical link fix.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
