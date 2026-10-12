@@ -422,10 +422,23 @@ One run reaches a preallocated OSLog buffer and then the unsupported word
 analysis of the captured 25G76 firmware finds a type-3 producer followed by
 three type-4 UUID chunks at offsets 4, 8 and 12. This binds the packet layout
 to that firmware; the producer's endpoint binding and complete transport
-semantics still require qualification. An opt-in single-follow-up observation
-times out before reaching the candidate. Cold recovery passes. OSLog
-registration, full management startup, service queries and scanout remain
-unqualified.
+semantics still require qualification. A qualified paired mailbox helper
+reaches the candidate within the original deadline. Its single-follow-up
+observer retains an interleaved syslog notification and stops before ACKing it.
+A separately enabled EP8 observer handles only already-qualified interleaved
+traffic, then captures `0x04000020d51e4021` on EP8 and stops without an ACK.
+The type, source index and offset match the producer's first type-4 chunk at
+offset 4; the remaining chunks and registration are not qualified.
+Cold recovery passes. OSLog registration, full management startup, service
+queries and scanout remain unqualified.
+
+The paired helper checks fresh parents, translation context and exceptions
+around each word, with data before endpoint commit. Partial results are
+terminal; the pair is not atomic. Private refusal cases, code/data/stack CPU
+mappings and positive management traffic pass live. Its deadlines use the
+measured architectural counter: in this boot profile CNTFRQ reports 1 GHz,
+confirmed against host timing brackets. The watchdog uses separate 24 MHz units. Keep those clocks
+separate when converting timeouts.
 
 ## Other devices
 
