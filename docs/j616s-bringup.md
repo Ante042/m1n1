@@ -1031,6 +1031,14 @@ RTBuddy object and reads initialization-guard bit 0 set. The native initializer
 sets the flag without checking the hardware initializer's return value, so the
 flag does not establish electrical success or earlier transition completion.
 
+A further RAM comparison omits only the initial one-second UC-tunables poll
+before RTKit negotiation. It preserves RUN, the settling delay, every register
+write, full startup, the final tunables gate and reset-release order. Startup
+and the final gate pass, and activation reaches stage 15 without exceptions,
+but the link remains in RX.Detect at 480 Mbps. Watchdog recovery passes. The
+extra initial wait is not the observed link fix; native provider power-state
+handling remains a separate sequence-equivalence gap.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
