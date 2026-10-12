@@ -697,3 +697,11 @@ This qualifies the bounded initial0-to-2 publication, not a complete native
 constructor, POWERUP's later value12 update or external consumers. The
 experimental access helper and SPTM emulator are not part of this production
 PR; they are not a driver initialization recipe.
+
+A further bounded RAM probe initialized an empty 42-bit primary stage-2
+tree and mapped the original page with Device-nGnRE, read-only and
+execute-never attributes. The raw page descriptor was `0x600105ddc08747`;
+its original PA and 16 KiB extent matched. No guest was entered, and cold
+watchdog recovery passed. This qualifies the stage-2 descriptor, not guest
+stage-1 cache attributes, combined translation or native POWERUP. The
+experimental loader reservation and remap guard remain outside this PR.
