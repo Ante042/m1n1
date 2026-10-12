@@ -688,7 +688,12 @@ qualifies narrow read accessibility, not write permission or native POWERUP.
 The native constructor publishes initial value2 to this cell without checking
 its previous value. The native GAPF descriptor prerequisites also matched a
 separate read-only capture:64 slices, descriptor words1/0, selected control2,
-and a32-bit selected range width3. Constructor publication, POWERUP's later
-value12 update and external consumers remain under qualification. The
+and a32-bit selected range width3. A subsequent RAM-only constructor probe published initial value2 to the
+original cell once. Guarded readback returned2 with no recorded exceptions;
+the temporary Device write view was removed and its translation faulted,
+while the original Device read-only view remained valid. Hardware GAPF
+remained2, and natural watchdog recovery returned the paired cold proxy.
+This qualifies the bounded initial0-to-2 publication, not a complete native
+constructor, POWERUP's later value12 update or external consumers. The
 experimental access helper and SPTM emulator are not part of this production
 PR; they are not a driver initialization recipe.
