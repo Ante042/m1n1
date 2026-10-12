@@ -408,8 +408,8 @@ are published; the two-page selective command and complete CPU-visible table
 verification pass. DCP requests a 12 KiB syslog buffer with 63 records of
 160 bytes each. The reply preserves the requested three 4 KiB pages while
 retaining a dedicated 16 KiB backing page. Notifications are acknowledged
-under a current buffer lease. No AP power acknowledgement or final management
-proof has been observed.
+under a current buffer lease. Both fresh IOP and AP power acknowledgements
+are now observed; the startup return and table checks are described below.
 
 The diagnostic retains 24 non-log pairs and permits at most 63 syslog
 notifications after validated geometry, with an absolute cap of 87. The
@@ -433,9 +433,20 @@ A further bounded capture retains all three ordered chunks at offsets 4, 8
 and 12, without ACKs or host registration. Continuing after that observed
 sequence receives fresh IOP and AP state-0x20 acknowledgements. A later
 post-receive parent check fails, so final management closure remains unproven.
-The complete pair is retained and not replayed. Cold recovery passes. OSLog
-registration, full management startup, service queries and scanout remain
-unqualified.
+The complete pair is retained and not replayed. Cold recovery passes.
+
+An explicit startup-boundary test returns immediately after both guarded power
+acknowledgements, matching the return condition of `rtkit_boot_timed()` and
+`ASCManagementEndpoint.wait_boot()`. Required owned buffer replies and all three
+OSLog chunks complete first. A fresh RAM-only run then compares all seven
+published table pages exactly through CPU mappings, with the original source,
+CPU, ownership and watchdog checks. No further DCP register or FIFO read occurs.
+Watchdog recovery returns to the installed proxy. This qualifies startup
+acknowledgements and CPU-visible table preservation; the last controller
+observation remains prior evidence. Current controller access, firmware
+coherence, OSLog registration, service queries and scanout remain unqualified.
+DISP_CPU was observed automatically gated in the earlier continued-drain test;
+its parent checks must remain in place for subsequent device access.
 
 The paired helper checks fresh parents, translation context and exceptions
 around each word, with data before endpoint commit. Partial results are
