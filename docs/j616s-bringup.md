@@ -1113,6 +1113,9 @@ not work currently eligible to run. Action `0x4b` can repeat or return to
 next-action zero and is not itself a PLL-lock indication. This difference
 narrows investigation to the lane event/action path. It does not establish
 which native event is missing or justify an invented endpoint payload.
+The proxy reading is from preparation before controller activation, whereas
+the native reading is from an established link. A post-activation proxy
+comparison is required before attributing the link failure to this difference.
 
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
