@@ -1016,6 +1016,21 @@ unchanged through one second. Cold watchdog recovery passes. Neither speed
 request establishes a physical SuperSpeed link; configured capability alone
 does not explain the failure.
 
+A read-only native reference now resolves PHY0's CPU phandle through the
+current registry to an actual `RTBuddy(ACIOPHY0)` service and independently
+retained `AppleA7IOPNub`. The loaded UUIDs, allocator and code windows match
+the saved source. Paired scalar reads confirm the nub relationship, a clear
+standalone selector, current state 8 and a clear transition flag. For the
+PHY's foreign-owner state-1 request, this selects the managed power action;
+it does not select the standalone `startCPU` path. This is a current-state
+observation, not proof that any earlier managed transition completed. The
+native link was independently observed at 10 Gbit/s with controller power 4.
+No power method, register write or pointer-following operation was performed.
+A separate retained PHY-driver observation matches its CPU pointer to that
+RTBuddy object and reads initialization-guard bit 0 set. The native initializer
+sets the flag without checking the hardware initializer's return value, so the
+flag does not establish electrical success or earlier transition completion.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
