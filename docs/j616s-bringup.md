@@ -1104,6 +1104,16 @@ execution history or PLL-lock result. They do not justify forcing the
 common-initialization path. Physical SuperSpeed remains unqualified in the
 proxy despite these matching firmware states.
 
+The separate per-lane scheduler does differ. On the active native lane 1,
+the sampled priority is `0x14`, last action `0x4b` and next action zero.
+Both proxy lanes instead report priority `0x1f` and last/next action zero.
+The matching firmware gates its lane action dispatcher on priority below
+14; the sampled native values therefore describe prior action progress,
+not work currently eligible to run. Action `0x4b` can repeat or return to
+next-action zero and is not itself a PLL-lock indication. This difference
+narrows investigation to the lane event/action path. It does not establish
+which native event is missing or justify an invented endpoint payload.
+
 A separate watchdog-preserving RAM candidate raised only its diagnostic
 cpufreq ceiling from state 2 to state 3; the production ceiling stayed at 2.
 The candidate image and build configuration matched before testing. Cluster 0
