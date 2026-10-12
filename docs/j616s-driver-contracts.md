@@ -667,3 +667,28 @@ the existing xART data and boot identity; do not initialize that exchange with
 fabricated storage or acknowledge an unimplemented write. These references
 explain why retrying the unchanged ROM request is not the next bring-up step;
 they do not establish J616s endpoint or service support.
+
+## Protected GAPF status bank
+
+A separate experimental 26A428 RAM image qualified one read from the original
+`/chosen/dart-gapf-sr-region` resource on J616s. The ADT declares a 16 KiB
+CARV page at `0x105ddc08000`; it lies outside normal managed RAM and the
+observed region-id2/4 exclusions. The physical identity mapping is normally
+cached. Do not treat an arbitrary physical read or a generic low-MMIO alias
+as equivalent to the tested access.
+
+The tested image excluded this page from cached/NC ordinary mappings, then
+verified registered parent page tables, both translation regimes, Device-nGnRE
+attributes and a read-only leaf. Actual read translation succeeded and write
+translation faulted. One guarded 32-bit read of slice4 at page offset `0x10`
+returned zero without CPU exceptions; natural watchdog recovery returned the
+installed 480 Mb/s proxy. No guest or status-bank write was performed. This
+qualifies narrow read accessibility, not write permission or native POWERUP.
+
+The native constructor publishes initial value2 to this cell without checking
+its previous value. The native GAPF descriptor prerequisites also matched a
+separate read-only capture:64 slices, descriptor words1/0, selected control2,
+and a32-bit selected range width3. Constructor publication, POWERUP's later
+value12 update and external consumers remain under qualification. The
+experimental access helper and SPTM emulator are not part of this production
+PR; they are not a driver initialization recipe.
