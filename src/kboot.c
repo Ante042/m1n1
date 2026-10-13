@@ -2476,6 +2476,50 @@ struct dt_t8140_dram {
     u64 base, size;
 };
 
+/* These opaque disp0 inputs are described by the public apple,dcp binding.
+ * Keep their firmware byte order; they are not FDT integer cells. */
+static int dt_t8140_copy_provider_props(const char *dcp_path)
+{
+    static const struct {
+        const char *name;
+        u32 size;
+    } props[] = {
+        {"power-lut-data-x", 4},
+        {"power-lut-data-y", 4},
+        {"power-lut-data-xindex", 52},
+        {"power-lut-data-yindex", 4},
+        {"power-lut-data-lut", 52},
+    };
+    const void *values[ARRAY_SIZE(props)];
+    int disp = adt_path_offset(adt, "/arm-io/disp0");
+    if (disp < 0)
+        return 0; /* Leave absent data to the kernel's qualified fallback. */
+
+    /* Validate all present inputs before modifying the transactional FDT. */
+    for (size_t i = 0; i < ARRAY_SIZE(props); i++) {
+        u32 size = 0;
+        values[i] = adt_getprop(adt, disp, props[i].name, &size);
+        if (values[i] && size != props[i].size) {
+            printf("FDT: disp0 %s has %u bytes, expected %u\n", props[i].name, size,
+                   props[i].size);
+            return -FDT_ERR_BADVALUE;
+        }
+    }
+    for (size_t i = 0; i < ARRAY_SIZE(props); i++) {
+        if (!values[i])
+            continue;
+        int node = fdt_path_offset(dt, dcp_path);
+        if (node < 0)
+            return node;
+        char name[64];
+        snprintf(name, sizeof(name), "apple,%s", props[i].name);
+        int ret = fdt_setprop(dt, node, name, values[i], props[i].size);
+        if (ret)
+            return ret;
+    }
+    return 0;
+}
+
 static bool dt_t8140_in_physical_dram(const struct dt_t8140_dram *dram, u64 base, u64 size)
 {
     return size && base >= dram->base && base <= dram->base + dram->size &&
@@ -3500,6 +3544,10 @@ static int dt_set_display_t8140(void)
         goto refuse;
     }
 
+    step = "internal DCP provider properties";
+    if (dt_t8140_copy_provider_props("dcp"))
+        goto rollback;
+
     step = "internal DCP ASC and mailboxes";
     if (!dt_t8140_validate_dcp_asc("/arm-io/dcp", "dcp", false)) {
         reason = "inherited DCP ASC is not live with healthy empty mailboxes";
@@ -3551,6 +3599,10 @@ static int dt_set_display_t8140(void)
             step = "DCPEXT region-id-234 reservation";
             ext_step = 6;
             ret = dt_t8140_reserve_carveout(ext, NULL, "region-id-234", "region234", false, &dram);
+        }
+        if (!ret) {
+            step = "DCPEXT provider properties";
+            ret = dt_t8140_copy_provider_props(ext);
         }
         if (!ret) {
             step = "DCPEXT ASC and mailboxes";
