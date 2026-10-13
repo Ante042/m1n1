@@ -10,6 +10,11 @@ def test_t8140_display_handoff(tmp_path):
     start = source.index("struct dt_t8140_dram {")
     end = source.index("/* T8142 display carveouts:", start)
     helper = source[start:end]
+    # The read-only metadata exporter has its own actual-C tests. Keep this
+    # fixture focused on carveouts, dependency state and handoff failures.
+    observe_start = helper.index("static void dt_t8140_external_metadata(void)")
+    observe_end = helper.index("static int dt_set_display_t8140(void)", observe_start)
+    helper = helper[:observe_start] + "static void dt_t8140_external_metadata(void) {}\n" + helper[observe_end:]
     asc_source = (repo / "src/asc.c").read_text()
     asc_defs = asc_source[asc_source.index("#define ASC_CPU_CONTROL"):asc_source.index("struct asc_dev {")]
     asc_check = asc_source[asc_source.index("static bool asc_mailbox_empty("):asc_source.index("bool asc_can_recv(")]
@@ -300,20 +305,52 @@ static void setup(void)
         char path[64];
         snprintf(path, sizeof(path), "/soc/%s", refs[i]);
         assert(fdt_setprop_string(dt, fdt_path_offset(dt, "/aliases"), aliases[i], path) == 0);
+        assert(!fdt_setprop_string(dt, fdt_path_offset(dt, path), "compatible",
+                                  i < 2 ? "apple,t8140-dart" : "apple,t8140-asc-mailbox"));
         assert(fdt_setprop_u32(dt, fdt_path_offset(dt, path), "phandle", 100 + i) == 0);
         assert(fdt_setprop_u32(dt, fdt_path_offset(dt, path),
-                               i < 2 ? "#iommu-cells" : "#mbox-cells", 1) == 0);
+                               i < 2 ? "#iommu-cells" : "#mbox-cells", i < 2 ? 1 : 0) == 0);
         assert(fdt_setprop_string(dt, fdt_path_offset(dt, path), "status", "okay") == 0);
     }
     for (int i = 0; i < 2; i++) {
         const char *name = i ? "/soc/dcpext" : "/soc/dcp";
         fdt32_t iommu[] = {cpu_to_fdt32(100 + i), 0};
-        fdt32_t mbox[] = {cpu_to_fdt32(102 + i), 0};
+        fdt32_t mbox[] = {cpu_to_fdt32(102 + i)};
         assert(fdt_setprop(dt, fdt_path_offset(dt, name), "iommus", iommu,
                            sizeof(iommu)) == 0);
         assert(fdt_setprop(dt, fdt_path_offset(dt, name), "mboxes", mbox,
                            sizeof(mbox)) == 0);
     }
+    int supply = fdt_add_subnode(dt, fdt_path_offset(dt, "/soc"), "external-power");
+    assert(supply >= 0);
+    assert(!fdt_setprop_string(dt, supply, "compatible", "apple,t8140-pmgr-pwrstate"));
+    assert(!fdt_setprop_u32(dt, supply, "phandle", 200));
+    assert(!fdt_setprop_u32(dt, supply, "#power-domain-cells", 0));
+    assert(!fdt_setprop_string(dt, supply, "status", "disabled"));
+    assert(!fdt_setprop_u32(dt, fdt_path_offset(dt, "/soc/dcpext"), "power-domains", 200));
+
+    /* Model the public PIODMA-to-scanout topology instead of empty masters. */
+    for (int i = 0; i < 2; i++) {
+        const char *dart_name = i ? "dart-dispext" : "dart-disp";
+        assert(fdt_add_subnode(dt, fdt_path_offset(dt, "/soc"), dart_name) >= 0);
+        char dart_path[64];
+        snprintf(dart_path, sizeof(dart_path), "/soc/%s", dart_name);
+        int n = fdt_path_offset(dt, dart_path);
+        assert(!fdt_setprop_string(dt, n, "compatible", "apple,t8140-dart"));
+        assert(!fdt_setprop_u32(dt, n, "phandle", 104 + i));
+        assert(!fdt_setprop_u32(dt, n, "#iommu-cells", 1));
+        assert(!fdt_setprop_string(dt, n, "status", "okay"));
+        const char *controller = i ? "/soc/dcpext" : "/soc/dcp";
+        assert(fdt_add_subnode(dt, fdt_path_offset(dt, controller), "piodma") >= 0);
+        char child[64];
+        snprintf(child, sizeof(child), "%s/piodma", controller);
+        fdt32_t tuple[] = {cpu_to_fdt32(104 + i), cpu_to_fdt32(16)};
+        assert(!fdt_setprop(dt, fdt_path_offset(dt, child), "iommus", tuple, sizeof(tuple)));
+        tuple[1] = 0;
+        assert(!fdt_setprop(dt, fdt_path_offset(dt, i ? "/soc/dispext0" : "/soc/disp0"),
+                           "iommus", tuple, sizeof(tuple)));
+    }
+
     assert(fdt_add_subnode(dt, fdt_path_offset(dt, "/chosen"), "framebuffer") >= 0);
     cur_boot_args.phys_base = 0x1000342c000;
     cur_boot_args.mem_size = 0x1e39e8000;
@@ -378,6 +415,10 @@ int main(void)
     check_status("dcp", "okay");
     check_status("disp0", "okay");
     check_status("dcpext", "okay");
+    const fdt32_t *preflight = fdt_getprop(dt, fdt_path_offset(dt, "/chosen"),
+                                         "asahi,external-display-preflight", NULL);
+    assert(preflight && fdt32_to_cpu(*preflight) == 0x100);
+    check_status("external-power", "okay");
     check_status("dispext0", "disabled");
     assert(reservation_calls == 11);
     assert(fdt_path_offset(dt, "/reserved-memory/framebuffer@101eb4b8000") >= 0);
@@ -385,6 +426,16 @@ int main(void)
     assert(fdt_path_offset(dt, "/reserved-memory/dcpext0_data_tail@101ea79c000") >= 0);
     assert(fdt_path_offset(dt, "/chosen/framebuffer") >= 0);
     check_claim(true);
+    assert(!dt_t8140_disable_dcpext());
+    check_status("external-power", "disabled");
+    check_status("dcp", "okay");
+
+    setup();
+    assert(!fdt_setprop_u32(dt, fdt_path_offset(dt, "/soc/external-power"),
+                           "power-domains", 200));
+    memcpy(before, dt, sizeof(tree));
+    assert(dt_set_display_t8140() < 0);
+    assert(!memcmp(before, dt, sizeof(tree)));
 
     setup();
     physical_size = carveouts[0].pa - physical_base + carveouts[0].size - SZ_16K;
