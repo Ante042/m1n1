@@ -10,11 +10,6 @@ def test_t8140_display_handoff(tmp_path):
     start = source.index("struct dt_t8140_dram {")
     end = source.index("/* T8142 display carveouts:", start)
     helper = source[start:end]
-    # The read-only metadata exporter has its own actual-C tests. Keep this
-    # fixture focused on carveouts, dependency state and handoff failures.
-    observe_start = helper.index("static void dt_t8140_external_metadata(void)")
-    observe_end = helper.index("static int dt_set_display_t8140(void)", observe_start)
-    helper = helper[:observe_start] + "static void dt_t8140_external_metadata(void) {}\n" + helper[observe_end:]
     asc_source = (repo / "src/asc.c").read_text()
     asc_defs = asc_source[asc_source.index("#define ASC_CPU_CONTROL"):asc_source.index("struct asc_dev {")]
     asc_check = asc_source[asc_source.index("static bool asc_mailbox_empty("):asc_source.index("bool asc_can_recv(")]
@@ -411,6 +406,12 @@ static void setup(void)
 }
 static void check_claim(bool present)
 {
+    const char *observations[] = {
+        "asahi,external-display-metadata", "asahi,external-display-mappers",
+        "asahi,external-display-registers",
+    };
+    for (size_t i = 0; i < ARRAY_SIZE(observations); i++)
+        assert(!fdt_getprop(dt, fdt_path_offset(dt, "/chosen"), observations[i], NULL));
     int len = 0;
     const u32 *cell = fdt_getprop(dt, fdt_path_offset(dt, "/chosen"),
                                   "apple,dcp-rtkit-quiesced", &len);
@@ -663,9 +664,9 @@ int main(void)
         input=harness, text=True, check=True,
     )
     result = subprocess.run([str(binary)], check=True, capture_output=True, text=True)
-    assert "framebuffer: PA 0x101eb4b8000 size 0xde1380; /vram PA 0x101eb4b8000 size 0x5758000" in result.stdout
-    assert "framebuffer: sub-range of /vram validated" in result.stdout
-    assert "physical DRAM: PA 0x10000000000 size 0x200000000" in result.stdout
+    assert "DCP enabled with validated framebuffer, firmware and live ASC" in result.stdout
+    assert "DCP nub segment" not in result.stdout
+    assert "framebuffer: sub-range of /vram validated" not in result.stdout
     assert "refused at preflight: /vram lies outside physical DRAM" in result.stdout
     assert "region-id-57 PA 0x10200000000 size 0xc00000 outside physical DRAM" in result.stdout
     assert "refused at /vram DCP/disp0 DART reservation" in result.stdout
