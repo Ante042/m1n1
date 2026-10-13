@@ -89,6 +89,9 @@ m1n1 is licensed under the MIT license, as included in the [LICENSE](LICENSE) fi
 The Aurora Silicon logo files have separate terms in
 [LICENSE.AURORA-LOGO](3rdparty_licenses/LICENSE.AURORA-LOGO).
 
+The Omarchy logo files have separate terms in
+[LICENSE.OMARCHY-LOGO](3rdparty_licenses/LICENSE.OMARCHY-LOGO).
+
 * Copyright The Asahi Linux Contributors
 
 Please see the Git history for authorship information.
