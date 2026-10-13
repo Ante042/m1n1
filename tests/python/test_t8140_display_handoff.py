@@ -294,7 +294,8 @@ static int dt_get_iommu_node(int node, u32 num)
 static int provider_setprop(void *fdt, int node, const char *name, const void *value, int len)
 {
     char path[64];
-    if (provider_no_space && !strncmp(name, "apple,power-lut-", 16) &&
+    /* Fail the last property so rollback must also discard a copied prefix. */
+    if (provider_no_space && !strcmp(name, "apple,power-lut-data-lut") &&
         !fdt_get_path(fdt, node, path, sizeof(path)) && !strcmp(path, provider_no_space))
         return -FDT_ERR_NOSPACE;
     return fdt_setprop(fdt, node, name, value, len);
