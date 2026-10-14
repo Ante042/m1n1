@@ -1951,6 +1951,32 @@ static int dt_set_dcp_firmware(const char *alias)
     return 0;
 }
 
+/*
+ * Type-C display routes of a DCP that m1n1 enables are disabled in the device
+ * tree.  The Type-C connectors point at them, and a route that is available
+ * while its DCP is not would leave the connector waiting forever for a mode
+ * switch that never registers.  Enable them together with the DCP.
+ */
+static void dt_enable_dcp_typec_routes(const char *dcp_alias)
+{
+    int dcp_node = fdt_path_offset(dt, dcp_alias);
+    if (dcp_node < 0)
+        return;
+
+    int routes = fdt_subnode_offset(dt, dcp_node, "typec-routes");
+    if (routes < 0)
+        return;
+
+    int route;
+    fdt_for_each_subnode(route, dt, routes) {
+        if (!fdt_getprop(dt, route, "status", NULL))
+            continue;
+        if (fdt_setprop_string(dt, route, "status", "okay") < 0)
+            printf("FDT: failed to enable Type-C route %s of '%s'\n",
+                   fdt_get_name(dt, route, NULL), dcp_alias);
+    }
+}
+
 struct disp_mapping {
     char region_adt[24];
     char mem_fdt[24];
@@ -2091,6 +2117,7 @@ static int dt_add_reserved_regions(const char *dcp_alias, const char *disp_alias
         int dcp_node = fdt_path_offset(dt, dcp_alias);
         if (dcp_node < 0 || fdt_setprop_string(dt, dcp_node, "status", "okay") < 0)
             bail_cleanup("FDT: failed to enable '%s'\n", dcp_alias);
+        dt_enable_dcp_typec_routes(dcp_alias);
     }
 
 err:
@@ -2384,6 +2411,8 @@ static int dt_reserve_dcpext_firmware(void)
         dcpext_node = fdt_path_offset(dt, dcpext_alias);
         if ((dcpext_node < 0) || (fdt_setprop_string(dt, dcpext_node, "status", "okay") < 0))
             printf("FDT: failed to enable '%s'\n", dcpext_alias);
+        else
+            dt_enable_dcp_typec_routes(dcpext_alias);
     }
 
     return 0;
