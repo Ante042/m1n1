@@ -66,6 +66,14 @@ void s2r_reset_resume(void)
     u64 entry = cpu->entry;
     if (!entry) {
         sysop("dsb sy");
+        /* Secondaries go back to the spin table. A cold boot from here would
+         * run over the next stage, so park the boot CPU instead. */
+        if (is_boot_cpu()) {
+            cpu->stage = S2R_STAGE_PARKED;
+            sysop("dsb sy");
+            while (1)
+                sysop("wfe");
+        }
         return;
     }
 

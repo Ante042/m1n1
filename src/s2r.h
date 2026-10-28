@@ -27,6 +27,7 @@
 #define S2R_STAGE_CPU_INIT  2 /* core state initialized */
 #define S2R_STAGE_JUMP      3 /* jumping to the resume entry */
 #define S2R_STAGE_SECONDARY 4 /* no entry, back to the spin table */
+#define S2R_STAGE_PARKED    5 /* boot CPU without an entry, parked */
 
 struct s2r_cpu {
     u64 mpidr;
