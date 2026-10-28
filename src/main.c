@@ -35,6 +35,7 @@
 #include "wdt.h"
 #include "stage1_config.h"
 #include "xnuboot.h"
+#include "s2r.h"
 
 struct vector_args next_stage;
 
@@ -349,6 +350,7 @@ next_stage:
 #endif
 
     printf("Vectoring to next stage...\n");
+    s2r_handoff();
 
     next_stage.entry(next_stage.args[0], next_stage.args[1], next_stage.args[2], next_stage.args[3],
                      next_stage.args[4]);

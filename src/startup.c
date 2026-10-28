@@ -9,6 +9,7 @@
 #include "exception.h"
 #include "firmware.h"
 #include "midr.h"
+#include "s2r.h"
 #include "smp.h"
 #include "string.h"
 #include "types.h"
@@ -258,6 +259,7 @@ void _cpu_reset_c(void *stack)
         smp_secondary_entry();
         return;
     }
+    s2r_reset_enter();
     bool quiet = chip_id == T8142 && !is_boot_cpu();
     if (!quiet) {
         if (!is_boot_cpu())
@@ -272,6 +274,9 @@ void _cpu_reset_c(void *stack)
     if (!quiet)
         printf("  Running in EL%lu\n\n", mrs(CurrentEL) >> 2);
 
+    /* Does not return when the next stage left a resume entry for this CPU */
+    s2r_reset_resume();
+
     exception_initialize();
 
     if (in_el3()) {
@@ -279,8 +284,10 @@ void _cpu_reset_c(void *stack)
         return;
     }
 
-    if (!is_boot_cpu())
+    if (!is_boot_cpu()) {
+        s2r_reset_secondary();
         smp_secondary_entry();
-    else
+    } else {
         m1n1_main();
+    }
 }

@@ -7,6 +7,7 @@
 #include "cpu_regs.h"
 #include "memory.h"
 #include "pmgr.h"
+#include "s2r.h"
 #include "soc.h"
 #include "string.h"
 #include "types.h"
@@ -969,6 +970,32 @@ uint64_t smp_get_mpidr(int cpu)
         return 0;
 
     return spin_table[cpu].mpidr;
+}
+
+int smp_s2r_describe(struct s2r_cpu *cpus, int max)
+{
+    int n = 0;
+
+    if (!smp_initialized || chip_id == T8142 || chip_id == T8152)
+        return 0;
+
+    for (int i = 0; i < MAX_CPUS && n < max; i++) {
+        const struct cpu_info *cpu = &cpu_info[i];
+        u64 start_base = cpu_start_base + cpu->die * PMGR_DIE_OFFSET;
+
+        if (!cpu->valid || (i != boot_cpu_idx && !spin_table[i].flag))
+            continue;
+
+        cpus[n].mpidr = spin_table[i].mpidr;
+        cpus[n].impl_reg = cpu->impl_reg;
+        cpus[n].start_reg0 = start_base + 0x4;
+        cpus[n].start_val0 = cpu_start_bit(i, cpu);
+        cpus[n].start_reg1 = start_base + 0x8 + 4 * cpu->cluster;
+        cpus[n].start_val1 = 1 << cpu->core;
+        n++;
+    }
+
+    return n;
 }
 
 u64 smp_get_release_addr(int cpu)

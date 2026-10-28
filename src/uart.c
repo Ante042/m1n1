@@ -9,6 +9,7 @@
 #include "uart_regs.h"
 #include "utils.h"
 #include "vsprintf.h"
+#include "s2r.h"
 
 #define UART_CLOCK 24000000
 
@@ -41,7 +42,7 @@ int uart_init(void)
 
 void uart_putbyte(u8 c)
 {
-    if (!uart_base)
+    if (!uart_base || s2r_console_muted())
         return;
 
     while (!(read32(uart_base + UTRSTAT) & UTRSTAT_TXBE))

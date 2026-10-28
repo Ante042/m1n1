@@ -5,6 +5,7 @@
 #include "iodev.h"
 #include "memory.h"
 #include "string.h"
+#include "s2r.h"
 
 #ifdef DEBUG_IODEV
 #define dprintf printf
@@ -198,6 +199,10 @@ static void _iodev_console_write_helper(iodev_id_t iod, char prefix, const void 
 
 void iodev_console_write(const void *buf, size_t length)
 {
+    /* The next stage owns the console devices and may have powered them down */
+    if (s2r_console_muted())
+        return;
+
     bool do_lock = mmu_active();
 
     if (!do_lock && !is_boot_cpu()) {

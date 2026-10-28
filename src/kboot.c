@@ -28,6 +28,7 @@
 #include "pcie.h"
 #include "pmgr.h"
 #include "rtkit.h"
+#include "s2r.h"
 #include "sep.h"
 #include "sio.h"
 #include "smp.h"
@@ -6550,6 +6551,8 @@ int kboot_prepare_dt(void *fdt)
     if (dt_set_smbios())
         return -1;
     if (dt_set_cpus())
+        return -1;
+    if (s2r_publish(dt))
         return -1;
     if (dt_set_mac_addresses())
         return -1;

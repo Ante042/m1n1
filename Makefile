@@ -207,6 +207,7 @@ OBJECTS := \
 	sio.o \
 	smc.o \
 	smp.o \
+	s2r.o \
 	spmi.o ace3.o \
 	start.o \
 	startup.o \
