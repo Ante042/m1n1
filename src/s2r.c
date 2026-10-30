@@ -5,6 +5,7 @@
 #include "memory.h"
 #include "string.h"
 #include "smp.h"
+#include "soc.h"
 #include "utils.h"
 
 #include "libfdt/libfdt.h"
@@ -33,6 +34,26 @@ static struct s2r_cpu *s2r_this_cpu(void)
     return NULL;
 }
 
+/*
+ * SoC watchdog WD1 on t6000. The next stage's test dead-man arms it for
+ * system sleep; restarting it here with its own timeout makes the reset time
+ * show how far a wake got. Nothing happens unless it is armed.
+ */
+#define S2R_T6000_WD1_CUR  0x2922b0010UL
+#define S2R_T6000_WD1_BITE 0x2922b0014UL
+#define S2R_T6000_WD1_CTL  0x2922b001cUL
+
+static void s2r_wdt_mark(u32 seconds)
+{
+    if (chip_id != T6000 || !is_boot_cpu())
+        return;
+    if (!(read32(S2R_T6000_WD1_CTL) & BIT(2)))
+        return;
+
+    write32(S2R_T6000_WD1_CUR, 0);
+    write32(S2R_T6000_WD1_BITE, seconds * 24000000);
+}
+
 /* First thing on an RVBAR entry, before anything can print. */
 void s2r_reset_enter(void)
 {
@@ -46,6 +67,7 @@ void s2r_reset_enter(void)
     cpu->resets++;
     cpu->stage = S2R_STAGE_RESET;
     sysop("dsb sy");
+    s2r_wdt_mark(45);
 }
 
 /*
@@ -81,6 +103,7 @@ void s2r_reset_resume(void)
     cpu->stage = S2R_STAGE_JUMP;
     s2r_mailbox.resumes++;
     sysop("dsb sy");
+    s2r_wdt_mark(75);
 
     msr(DAIF, 7 << 6);
     msr(VBAR_EL1, _vectors_start);
