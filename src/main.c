@@ -274,6 +274,13 @@ void m1n1_main(void)
         goto next_stage;
     }
 
+#ifdef THIN_STAGE1
+    /* Leave the SoC as iBoot handed it over: only stop the primary
+     * watchdog and chainload the next stage. */
+    mmu_init();
+    wdt_disable_primary();
+    goto thin_done;
+#endif
 #ifndef BRINGUP
     if (supports_gxf())
         gxf_init();
@@ -311,6 +318,9 @@ void m1n1_main(void)
     cpufreq_fixup();
 #endif
 
+#ifdef THIN_STAGE1
+thin_done:
+#endif
     printf("Initialization complete.\n");
 
     run_actions();

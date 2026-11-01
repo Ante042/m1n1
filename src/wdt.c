@@ -11,6 +11,20 @@
 
 static u64 wdt_base = 0;
 
+void wdt_disable_primary(void)
+{
+    int path[8];
+
+    if (adt_path_offset_trace(adt, "/arm-io/wdt", path) < 0 ||
+        adt_get_reg(adt, path, "reg", 0, &wdt_base, NULL)) {
+        printf("WDT node not found!\n");
+        return;
+    }
+
+    write32(wdt_base + WDT_CTL, 0);
+    printf("Primary WDT disabled (secondary left alone)\n");
+}
+
 void wdt_disable(void)
 {
     int path[8];
