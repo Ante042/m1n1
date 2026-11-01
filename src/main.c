@@ -279,6 +279,8 @@ void m1n1_main(void)
      * watchdog and chainload the next stage. */
     mmu_init();
     wdt_disable_primary();
+    /* NVMe needs the PMGR tables to power ANS for the chainload. */
+    pmgr_init();
     goto thin_done;
 #endif
 #ifndef BRINGUP
