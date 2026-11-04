@@ -3,6 +3,7 @@
 #include "s2r.h"
 #include "cpu_regs.h"
 #include "memory.h"
+#include "pcie.h"
 #include "string.h"
 #include "smp.h"
 #include "soc.h"
@@ -54,6 +55,29 @@ static void s2r_wdt_mark(u32 seconds)
     write32(S2R_T6000_WD1_BITE, seconds * 24000000);
 }
 
+/*
+ * Suspend-to-RAM powers down blocks that only m1n1 sets up, from the ADT that
+ * kboot keeps reserved. Set up again what the next stage asked for, on the
+ * boot CPU, which wakes first, before the next stage resumes.
+ */
+static void s2r_restore(struct s2r_cpu *cpu)
+{
+    u64 restore = s2r_mailbox.restore;
+    int ret = 0;
+
+    if (!restore)
+        return;
+
+    cpu->stage = S2R_STAGE_RESTORE;
+    sysop("dsb sy");
+
+    if (restore & S2R_RESTORE_APCIE)
+        ret = pcie_s2r_reinit();
+
+    s2r_mailbox.restored = S2R_RESTORED_DONE | (u32)ret;
+    sysop("dsb sy");
+}
+
 /* First thing on an RVBAR entry, before anything can print. */
 void s2r_reset_enter(void)
 {
@@ -100,6 +124,8 @@ void s2r_reset_resume(void)
     }
 
     cpu->entry = 0;
+    if (is_boot_cpu())
+        s2r_restore(cpu);
     cpu->stage = S2R_STAGE_JUMP;
     s2r_mailbox.resumes++;
     sysop("dsb sy");

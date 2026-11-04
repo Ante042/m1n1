@@ -1088,6 +1088,31 @@ int pcie_init(void)
     return success ? 0 : -1;
 }
 
+/*
+ * Suspend-to-RAM powers the internal controller down, and the next stage only
+ * knows how to set up its ports. Set the controller up again the way kboot
+ * did. This runs on the wake path with the MMU off.
+ */
+int pcie_s2r_reinit(void)
+{
+    struct state *state = &controllers[APCIE];
+    const char *path = "/arm-io/apcie";
+
+    /*
+     * Not state->initialized: pcie_init() tries both node names for this
+     * controller, and the one that is missing clears it again.
+     */
+    if (chip_id == T8140 || !pcie_initialized)
+        return 1;
+    if (adt_path_offset(adt, path) < 0)
+        path = "/arm-io/apcie0";
+    if (adt_path_offset(adt, path) < 0)
+        return 2;
+
+    state->dirty = false;
+    return pcie_init_controller(APCIE, path);
+}
+
 int pcie_shutdown(void)
 {
     if (chip_id == T8140) {

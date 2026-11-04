@@ -28,6 +28,13 @@
 #define S2R_STAGE_JUMP      3 /* jumping to the resume entry */
 #define S2R_STAGE_SECONDARY 4 /* no entry, back to the spin table */
 #define S2R_STAGE_PARKED    5 /* boot CPU without an entry, parked */
+#define S2R_STAGE_RESTORE   6 /* boot CPU setting hardware up again for the entry */
+
+/* What the boot CPU sets up again on a wake, before it jumps to its entry */
+#define S2R_RESTORE_APCIE (1ULL << 0) /* the internal PCIe controller */
+
+/* The boot CPU ran the restore; the low 32 bits hold its result */
+#define S2R_RESTORED_DONE (1ULL << 63)
 
 struct s2r_cpu {
     u64 mpidr;
@@ -49,7 +56,8 @@ struct s2r_mailbox {
     u64 quiet;
     u64 boot_mpidr;
     u64 resumes;
-    u64 reserved[2];
+    u64 restore;  /* next stage: S2R_RESTORE_* for the boot CPU on the next wake */
+    u64 restored; /* m1n1: S2R_RESTORED_DONE and the result of that restore */
     struct s2r_cpu cpu[S2R_MAX_CPUS];
 };
 
